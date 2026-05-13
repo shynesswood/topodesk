@@ -2,26 +2,73 @@ package main
 
 import (
 	"context"
-	"fmt"
+
+	"topodesk/internal/models"
+	"topodesk/internal/project"
+	"topodesk/internal/scanner"
+	"topodesk/internal/ssh"
+	"topodesk/internal/storage"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// App struct
 type App struct {
-	ctx context.Context
+	ctx             context.Context
+	projectService  *project.ProjectService
+	fileManager     *storage.FileManager
+	sshService      *ssh.SSHService
+	scannerService  *scanner.ScannerService
 }
 
-// NewApp creates a new App application struct
 func NewApp() *App {
-	return &App{}
+	return &App{
+		projectService: project.NewProjectService(),
+		fileManager:    storage.NewFileManager(),
+		sshService:     ssh.NewSSHService(),
+		scannerService: scanner.NewScannerService(),
+	}
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.fileManager.SetContext(ctx)
 }
 
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
+func (a *App) NewProject(name string) (*models.TopologyProject, error) {
+	return a.projectService.New(name), nil
+}
+
+func (a *App) SaveProject(p *models.TopologyProject, path string) error {
+	return a.projectService.Save(p, path)
+}
+
+func (a *App) LoadProject(path string) (*models.TopologyProject, error) {
+	return a.projectService.Load(path)
+}
+
+func (a *App) OpenFileDialog() (string, error) {
+	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "Topology Files",
+				Pattern:     "*.topology.json",
+			},
+		},
+	})
+}
+
+func (a *App) SaveFileDialog() (string, error) {
+	return runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		DefaultFilename: "project.topology.json",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "Topology Files",
+				Pattern:     "*.topology.json",
+			},
+		},
+	})
+}
+
+func (a *App) FileExists(path string) bool {
+	return a.fileManager.Exists(path)
 }

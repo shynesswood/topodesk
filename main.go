@@ -17,9 +17,11 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "topodesk",
-		Width:  1024,
-		Height: 768,
+		Title:  "TopoDesk - 运维拓扑管理工具",
+		Width:  1340,
+		Height: 860,
+		MinWidth:  900,
+		MinHeight: 600,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
