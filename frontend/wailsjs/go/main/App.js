@@ -18,8 +18,8 @@ export function OpenFileDialog() {
   return window['go']['main']['App']['OpenFileDialog']();
 }
 
-export function SaveFileDialog() {
-  return window['go']['main']['App']['SaveFileDialog']();
+export function SaveFileDialog(arg1) {
+  return window['go']['main']['App']['SaveFileDialog'](arg1);
 }
 
 export function SaveProject(arg1, arg2) {

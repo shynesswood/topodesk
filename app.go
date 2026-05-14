@@ -57,9 +57,12 @@ func (a *App) OpenFileDialog() (string, error) {
 	})
 }
 
-func (a *App) SaveFileDialog() (string, error) {
+func (a *App) SaveFileDialog(defaultName string) (string, error) {
+	if defaultName == "" {
+		defaultName = "project.topology.json"
+	}
 	return runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		DefaultFilename: "project.topology.json",
+		DefaultFilename: defaultName,
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "Topology Files",

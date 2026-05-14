@@ -2,7 +2,6 @@ import { Form, Input, Select, InputNumber, Button, Collapse } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
 import { useTopologyStore } from '../../stores/topologyStore'
 import { useUIStore } from '../../stores/uiStore'
-import { useProjectStore } from '../../stores/projectStore'
 import { NODE_TYPES } from '../../types'
 
 const { TextArea } = Input
@@ -13,21 +12,18 @@ export function NodePanel() {
   const nodes = useTopologyStore((s) => s.nodes)
   const updateNode = useTopologyStore((s) => s.updateNode)
   const removeNode = useTopologyStore((s) => s.removeNode)
-  const markDirty = useProjectStore((s) => s.markDirty)
 
   const node = nodes.find((n) => n.id === selectedNodeId)
   if (!node) return null
 
   function handleChange(field: string, value: unknown) {
     updateNode(node!.id, { [field]: value })
-    markDirty()
   }
 
   function handleSSHChange(field: string, value: unknown) {
     updateNode(node!.id, {
       ssh: { ...node!.ssh, [field]: value },
     })
-    markDirty()
   }
 
   function handleDelete() {

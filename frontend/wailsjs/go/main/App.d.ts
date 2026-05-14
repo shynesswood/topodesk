@@ -10,6 +10,6 @@ export function NewProject(arg1:string):Promise<models.TopologyProject>;
 
 export function OpenFileDialog():Promise<string>;
 
-export function SaveFileDialog():Promise<string>;
+export function SaveFileDialog(arg1:string):Promise<string>;
 
 export function SaveProject(arg1:models.TopologyProject,arg2:string):Promise<void>;

@@ -1,6 +1,7 @@
-import { Edge, Node, XYPosition } from '@xyflow/react'
 import { create } from 'zustand'
 import { TopologyNode, TopologyEdge, Group, Viewport } from '../types'
+import { XYPosition } from '@xyflow/react'
+import { useProjectStore } from './projectStore'
 
 interface TopologyState {
   nodes: TopologyNode[]
@@ -32,8 +33,6 @@ interface TopologyState {
   clearSelection: () => void
 
   loadFromProject: (nodes: TopologyNode[], edges: TopologyEdge[], groups: Group[], viewport: Viewport) => void
-  getReactFlowNodes: () => Node[]
-  getReactFlowEdges: () => Edge[]
 }
 
 let nodeCounter = 0
@@ -49,6 +48,13 @@ function generateEdgeId(): string {
   return `edge-${Date.now()}-${edgeCounter}`
 }
 
+function markDirty() {
+  const p = useProjectStore.getState()
+  if (p.currentProject) {
+    p.markDirty()
+  }
+}
+
 export const useTopologyStore = create<TopologyState>((set, get) => ({
   nodes: [],
   edges: [],
@@ -57,8 +63,8 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   selectedNodeIds: [],
   selectedEdgeIds: [],
 
-  setNodes: (nodes) => set({ nodes }),
-  setEdges: (edges) => set({ edges }),
+  setNodes: (nodes) => { set({ nodes }); markDirty() },
+  setEdges: (edges) => { set({ edges }); markDirty() },
   setViewport: (viewport) => set({ viewport }),
 
   addNode: (type, name, position) => {
@@ -70,6 +76,7 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
       position: { x: position.x, y: position.y },
     }
     set((s) => ({ nodes: [...s.nodes, node] }))
+    markDirty()
   },
 
   removeNode: (id) => {
@@ -77,6 +84,7 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
       nodes: s.nodes.filter((n) => n.id !== id),
       edges: s.edges.filter((e) => e.source !== id && e.target !== id),
     }))
+    markDirty()
   },
 
   removeNodes: (ids) => {
@@ -84,18 +92,21 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
       nodes: s.nodes.filter((n) => !ids.includes(n.id)),
       edges: s.edges.filter((e) => !ids.includes(e.source) && !ids.includes(e.target)),
     }))
+    markDirty()
   },
 
   updateNode: (id, data) => {
     set((s) => ({
       nodes: s.nodes.map((n) => (n.id === id ? { ...n, ...data } : n)),
     }))
+    markDirty()
   },
 
   moveNode: (id, position) => {
     set((s) => ({
       nodes: s.nodes.map((n) => (n.id === id ? { ...n, position } : n)),
     }))
+    markDirty()
   },
 
   duplicateNode: (id) => {
@@ -108,25 +119,30 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
       position: { x: source.position.x + 50, y: source.position.y + 50 },
     }
     set((s) => ({ nodes: [...s.nodes, newNode] }))
+    markDirty()
   },
 
   addEdge: (edge) => {
     const id = edge.id || generateEdgeId()
     set((s) => ({ edges: [...s.edges, { ...edge, id }] }))
+    markDirty()
   },
 
   removeEdge: (id) => {
     set((s) => ({ edges: s.edges.filter((e) => e.id !== id) }))
+    markDirty()
   },
 
   removeEdges: (ids) => {
     set((s) => ({ edges: s.edges.filter((e) => !ids.includes(e.id)) }))
+    markDirty()
   },
 
   updateEdge: (id, data) => {
     set((s) => ({
       edges: s.edges.map((e) => (e.id === id ? { ...e, ...data } : e)),
     }))
+    markDirty()
   },
 
   setSelectedNodeIds: (ids) => set({ selectedNodeIds: ids }),
@@ -135,25 +151,5 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
 
   loadFromProject: (nodes, edges, groups, viewport) => {
     set({ nodes, edges, groups, viewport })
-  },
-
-  getReactFlowNodes: () => {
-    return get().nodes.map((n) => ({
-      id: n.id,
-      type: 'topology-node',
-      position: n.position,
-      data: { label: n.name, nodeType: n.type, nodeData: n },
-    }))
-  },
-
-  getReactFlowEdges: () => {
-    return get().edges.map((e) => ({
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      label: e.label,
-      type: 'topology-edge',
-      data: { edgeType: e.type },
-    }))
   },
 }))

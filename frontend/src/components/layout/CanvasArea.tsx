@@ -20,7 +20,6 @@ import {
 import '@xyflow/react/dist/style.css'
 import { useTopologyStore } from '../../stores/topologyStore'
 import { useUIStore } from '../../stores/uiStore'
-import { useProjectStore } from '../../stores/projectStore'
 import { useThemeColors } from '../../hooks/useThemeColors'
 import { TopologyNodeComponent } from '../topology/TopologyNode'
 import { TopologyEdgeComponent } from '../topology/TopologyEdge'
@@ -72,7 +71,6 @@ export function CanvasArea() {
   const openNodePanel = useUIStore((s) => s.openNodePanel)
   const openEdgePanel = useUIStore((s) => s.openEdgePanel)
   const closePanel = useUIStore((s) => s.closePanel)
-  const markDirty = useProjectStore((s) => s.markDirty)
 
   const rfNodes: Node[] = useMemo(() => buildRfNodes(), [nodes])
   const rfEdges: Edge[] = useMemo(() => buildRfEdges(), [edgesList])
@@ -152,8 +150,7 @@ export function CanvasArea() {
       source: connection.source,
       target: connection.target,
     })
-    markDirty()
-  }, [addEdge, markDirty])
+  }, [addEdge])
 
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     openNodePanel(node.id)
@@ -169,8 +166,7 @@ export function CanvasArea() {
 
   const onNodeDragStop: OnNodeDrag = useCallback((_event, node) => {
     moveNode(node.id, node.position)
-    markDirty()
-  }, [moveNode, markDirty])
+  }, [moveNode])
 
   return (
     <div style={{ width: '100%', height: '100%' }}>

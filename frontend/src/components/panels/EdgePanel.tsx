@@ -2,7 +2,6 @@ import { Form, Input, Select, Button } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
 import { useTopologyStore } from '../../stores/topologyStore'
 import { useUIStore } from '../../stores/uiStore'
-import { useProjectStore } from '../../stores/projectStore'
 import { EDGE_TYPES } from '../../types'
 
 export function EdgePanel() {
@@ -12,7 +11,6 @@ export function EdgePanel() {
   const nodes = useTopologyStore((s) => s.nodes)
   const updateEdge = useTopologyStore((s) => s.updateEdge)
   const removeEdge = useTopologyStore((s) => s.removeEdge)
-  const markDirty = useProjectStore((s) => s.markDirty)
 
   const edge = edges.find((e) => e.id === selectedEdgeId)
   if (!edge) return null
@@ -22,7 +20,6 @@ export function EdgePanel() {
 
   function handleChange(field: string, value: unknown) {
     updateEdge(edge!.id, { [field]: value })
-    markDirty()
   }
 
   function handleDelete() {

@@ -145,6 +145,6 @@ export async function OpenFileDialog(): Promise<string> {
   return WailsOpenFileDialog()
 }
 
-export async function SaveFileDialog(): Promise<string> {
-  return WailsSaveFileDialog()
+export async function SaveFileDialog(defaultName?: string): Promise<string> {
+  return WailsSaveFileDialog(defaultName || 'project.topology.json')
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Space, Tooltip, Input } from 'antd'
+import { Button, Space, Tooltip, Input, message } from 'antd'
 import {
   SaveOutlined,
   FolderOpenOutlined,
@@ -18,7 +18,6 @@ import { useTopologyStore } from '../../stores/topologyStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useThemeColors } from '../../hooks/useThemeColors'
 import {
-  NewProject,
   SaveProject,
   LoadProject,
   OpenFileDialog,
@@ -26,13 +25,14 @@ import {
 } from '../../services/projectService'
 
 export function Toolbar() {
-  const { currentProject, isDirty, setProject, markSaved, setFilePath } = useProjectStore()
+  const { currentProject, isDirty, setProject, markSaved, setFilePath, createBlank } = useProjectStore()
   const { nodes, edges, groups, viewport, loadFromProject } = useTopologyStore()
   const { theme, toggleTheme } = useSettingsStore()
   const colors = useThemeColors()
 
   const [editingName, setEditingName] = useState(false)
   const [tempName, setTempName] = useState('')
+  const [saving, setSaving] = useState(false)
 
   function startEditName() {
     if (!currentProject) return
@@ -55,13 +55,10 @@ export function Toolbar() {
   }
 
   async function handleNewProject() {
-    const name = prompt('请输入项目名称:')
-    if (!name) return
-    const project = await NewProject(name)
+    await createBlank()
+    const project = useProjectStore.getState().currentProject
     if (project) {
       loadFromProject(project.nodes, project.edges, project.groups, project.viewport)
-      setProject(project)
-      setFilePath(null)
     }
   }
 
@@ -77,26 +74,40 @@ export function Toolbar() {
   }
 
   async function handleSaveProject() {
-    const project = currentProject
-    if (!project) return
+    if (!currentProject) return
 
-    let path = useProjectStore.getState().filePath
-    if (!path) {
-      path = await SaveFileDialog()
-      if (!path) return
-      setFilePath(path)
+    const state = useProjectStore.getState()
+    if (!state.isDirty) {
+      message.info('项目没有改动，无需保存')
+      return
     }
 
-    const finalProject = {
-      ...project,
-      nodes: [...nodes],
-      edges: [...edges],
-      groups: [...groups],
-      viewport: { ...viewport },
-    }
+    setSaving(true)
+    try {
+      let path = state.filePath
+      if (!path) {
+        const defaultName = `${currentProject.project.name}.topology.json`
+        path = await SaveFileDialog(defaultName)
+        if (!path) { setSaving(false); return }
+        setFilePath(path)
+      }
 
-    await SaveProject(finalProject, path)
-    markSaved()
+      const finalProject = {
+        ...currentProject,
+        nodes: [...nodes],
+        edges: [...edges],
+        groups: [...groups],
+        viewport: { ...viewport },
+      }
+
+      await SaveProject(finalProject, path)
+      markSaved()
+      message.success('项目已保存')
+    } catch (e) {
+      message.error('保存失败')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function handleAutoLayout() {
@@ -107,8 +118,15 @@ export function Toolbar() {
         y: 100 + Math.floor(i / 4) * 150,
       },
     }))
-    useTopologyStore.setState({ nodes: updated })
+    useTopologyStore.getState().setNodes(updated)
   }
+
+  const hasProject = currentProject !== null
+  const shortName = currentProject?.project.name.length
+    ? (currentProject.project.name.length > 16
+      ? currentProject.project.name.slice(0, 16) + '...'
+      : currentProject.project.name)
+    : ''
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
@@ -119,14 +137,22 @@ export function Toolbar() {
         <Tooltip title="打开项目">
           <Button type="text" size="small" icon={<FolderOpenOutlined />} onClick={handleOpenProject} />
         </Tooltip>
-        <Tooltip title="保存项目">
-          <Button type="text" size="small" icon={<SaveOutlined />} onClick={handleSaveProject} />
+        <Tooltip title={isDirty ? '项目已修改，点击保存' : '项目未修改'}>
+          <Button
+            type="text"
+            size="small"
+            icon={<SaveOutlined />}
+            onClick={handleSaveProject}
+            disabled={!hasProject}
+            loading={saving}
+            style={!isDirty && hasProject ? { opacity: 0.4 } : undefined}
+          />
         </Tooltip>
       </Space>
       <div style={{ borderLeft: `1px solid ${colors.border}`, height: 20, margin: '0 8px' }} />
       <Space size="small">
         <Tooltip title="自动布局">
-          <Button type="text" size="small" icon={<AimOutlined />} onClick={handleAutoLayout} />
+          <Button type="text" size="small" icon={<AimOutlined />} onClick={handleAutoLayout} disabled={!hasProject} />
         </Tooltip>
         <Tooltip title="撤销">
           <Button type="text" size="small" icon={<UndoOutlined />} disabled />
@@ -136,8 +162,8 @@ export function Toolbar() {
         </Tooltip>
       </Space>
 
-      {currentProject && (
-        <span style={{ marginLeft: 16, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+      {hasProject && (
+        <span style={{ marginLeft: 14, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           {editingName ? (
             <>
               <Input
@@ -153,11 +179,20 @@ export function Toolbar() {
             </>
           ) : (
             <>
-              <span style={{ color: colors.textPrimary }}>
-                {currentProject.project.name}
+              <span style={{ color: colors.textPrimary, fontWeight: 600 }}>
+                {shortName}
               </span>
               <Button type="text" size="small" icon={<EditOutlined />} onClick={startEditName} />
-              {isDirty && <span style={{ color: colors.textSecondary, marginLeft: 4 }}>(未保存)</span>}
+              {isDirty && (
+                <span style={{
+                  display: 'inline-block',
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: '#f5a623',
+                  flexShrink: 0,
+                }} title="有未保存的修改" />
+              )}
             </>
           )}
         </span>
