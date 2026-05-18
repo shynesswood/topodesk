@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Space, Tooltip, Input, message } from 'antd'
+import { Button, Space, Tooltip, Input, message, Modal, Menu, Dropdown } from 'antd'
 import {
   SaveOutlined,
   FolderOpenOutlined,
@@ -12,27 +12,78 @@ import {
   EditOutlined,
   CheckOutlined,
   CloseOutlined,
+  HistoryOutlined,
+  DeleteOutlined,
+  CloudUploadOutlined,
 } from '@ant-design/icons'
 import { useProjectStore } from '../../stores/projectStore'
 import { useTopologyStore } from '../../stores/topologyStore'
 import { useSettingsStore } from '../../stores/settingsStore'
+import { useRecentStore } from '../../stores/recentStore'
 import { useThemeColors } from '../../hooks/useThemeColors'
 import {
   SaveProject,
   LoadProject,
   OpenFileDialog,
   SaveFileDialog,
+  BackupProject,
 } from '../../services/projectService'
 
 export function Toolbar() {
   const { currentProject, isDirty, setProject, markSaved, setFilePath, createBlank } = useProjectStore()
-  const { nodes, edges, groups, viewport, loadFromProject } = useTopologyStore()
+  const { nodes, edges, groups, viewport, loadFromProject, setNodes, setEdges, setGroups, setViewport } = useTopologyStore()
   const { theme, toggleTheme } = useSettingsStore()
+  const { recentProjects, addRecent, removeRecent } = useRecentStore()
   const colors = useThemeColors()
 
   const [editingName, setEditingName] = useState(false)
   const [tempName, setTempName] = useState('')
   const [saving, setSaving] = useState(false)
+  const [history, setHistory] = useState<Array<{ nodes: typeof nodes; edges: typeof edges; groups: typeof groups; viewport: typeof viewport }>>([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
+
+  function pushHistory() {
+    const newHistory = history.slice(0, historyIndex + 1)
+    newHistory.push({ nodes: [...nodes], edges: [...edges], groups: [...groups], viewport: { ...viewport } })
+    if (newHistory.length > 50) newHistory.shift()
+    setHistory(newHistory)
+    setHistoryIndex(newHistory.length - 1)
+  }
+
+  function handleUndo() {
+    if (historyIndex <= 0) return
+    const prev = history[historyIndex - 1]
+    setNodes(prev.nodes)
+    setEdges(prev.edges)
+    setGroups(prev.groups)
+    setViewport(prev.viewport)
+    setHistoryIndex(historyIndex - 1)
+  }
+
+  function handleRedo() {
+    if (historyIndex >= history.length - 1) return
+    const next = history[historyIndex + 1]
+    setNodes(next.nodes)
+    setEdges(next.edges)
+    setGroups(next.groups)
+    setViewport(next.viewport)
+    setHistoryIndex(historyIndex + 1)
+  }
+
+  async function handleOpenRecent(path: string) {
+    try {
+      const project = await LoadProject(path)
+      if (project) {
+        loadFromProject(project.nodes, project.edges, project.groups, project.viewport)
+        setProject(project)
+        setFilePath(path)
+        addRecent(path, project.project.name)
+      }
+    } catch {
+      message.error('打开项目失败')
+      removeRecent(path)
+    }
+  }
 
   function startEditName() {
     if (!currentProject) return
@@ -65,11 +116,16 @@ export function Toolbar() {
   async function handleOpenProject() {
     const path = await OpenFileDialog()
     if (!path) return
-    const project = await LoadProject(path)
-    if (project) {
-      loadFromProject(project.nodes, project.edges, project.groups, project.viewport)
-      setProject(project)
-      setFilePath(path)
+    try {
+      const project = await LoadProject(path)
+      if (project) {
+        loadFromProject(project.nodes, project.edges, project.groups, project.viewport)
+        setProject(project)
+        setFilePath(path)
+        addRecent(path, project.project.name)
+      }
+    } catch {
+      message.error('打开项目失败')
     }
   }
 
@@ -102,11 +158,33 @@ export function Toolbar() {
 
       await SaveProject(finalProject, path)
       markSaved()
+      addRecent(path, finalProject.project.name)
       message.success('项目已保存')
     } catch (e) {
       message.error('保存失败')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleBackupProject() {
+    if (!currentProject) return
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const defaultName = `${currentProject.project.name}_backup_${timestamp}.topology.json`
+    const path = await SaveFileDialog(defaultName)
+    if (!path) return
+    try {
+      const finalProject = {
+        ...currentProject,
+        nodes: [...nodes],
+        edges: [...edges],
+        groups: [...groups],
+        viewport: { ...viewport },
+      }
+      await BackupProject(finalProject, path)
+      message.success('快照已保存')
+    } catch {
+      message.error('快照保存失败')
     }
   }
 
@@ -134,9 +212,40 @@ export function Toolbar() {
         <Tooltip title="新建项目">
           <Button type="text" size="small" icon={<FileAddOutlined />} onClick={handleNewProject} />
         </Tooltip>
-        <Tooltip title="打开项目">
-          <Button type="text" size="small" icon={<FolderOpenOutlined />} onClick={handleOpenProject} />
-        </Tooltip>
+        <Dropdown menu={{
+          items: [
+            {
+              key: 'open',
+              label: '打开项目...',
+              icon: <FolderOpenOutlined />,
+              onClick: handleOpenProject,
+            },
+            ...(recentProjects.length > 0 ? [
+              { type: 'divider' as const },
+              ...recentProjects.map((p) => ({
+                key: p.path,
+                label: (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 280 }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                    <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 8 }}>
+                      {new Date(p.lastOpened).toLocaleDateString()}
+                    </span>
+                  </div>
+                ),
+                onClick: () => handleOpenRecent(p.path),
+              })),
+              { type: 'divider' as const },
+              {
+                key: 'clear',
+                label: '清除记录',
+                icon: <DeleteOutlined />,
+                onClick: () => useRecentStore.getState().clearRecent(),
+              },
+            ] : []),
+          ],
+        }}>
+          <Button type="text" size="small" icon={<FolderOpenOutlined />} />
+        </Dropdown>
         <Tooltip title={isDirty ? '项目已修改，点击保存' : '项目未修改'}>
           <Button
             type="text"
@@ -155,10 +264,10 @@ export function Toolbar() {
           <Button type="text" size="small" icon={<AimOutlined />} onClick={handleAutoLayout} disabled={!hasProject} />
         </Tooltip>
         <Tooltip title="撤销">
-          <Button type="text" size="small" icon={<UndoOutlined />} disabled />
+          <Button type="text" size="small" icon={<UndoOutlined />} onClick={handleUndo} disabled={historyIndex <= 0} />
         </Tooltip>
         <Tooltip title="重做">
-          <Button type="text" size="small" icon={<RedoOutlined />} disabled />
+          <Button type="text" size="small" icon={<RedoOutlined />} onClick={handleRedo} disabled={historyIndex >= history.length - 1} />
         </Tooltip>
       </Space>
 

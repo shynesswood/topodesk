@@ -14,6 +14,7 @@ interface TopologyState {
 
   setNodes: (nodes: TopologyNode[]) => void
   setEdges: (edges: TopologyEdge[]) => void
+  setGroups: (groups: Group[]) => void
   setViewport: (viewport: Viewport) => void
 
   addNode: (type: string, name: string, position: XYPosition) => void
@@ -27,6 +28,12 @@ interface TopologyState {
   removeEdge: (id: string) => void
   removeEdges: (ids: string[]) => void
   updateEdge: (id: string, data: Partial<TopologyEdge>) => void
+
+  addGroup: (name: string, nodeIds: string[]) => void
+  removeGroup: (id: string) => void
+  updateGroup: (id: string, data: Partial<Group>) => void
+  addNodesToGroup: (groupId: string, nodeIds: string[]) => void
+  removeNodesFromGroup: (groupId: string, nodeIds: string[]) => void
 
   setSelectedNodeIds: (ids: string[]) => void
   setSelectedEdgeIds: (ids: string[]) => void
@@ -65,6 +72,7 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
 
   setNodes: (nodes) => { set({ nodes }); markDirty() },
   setEdges: (edges) => { set({ edges }); markDirty() },
+  setGroups: (groups) => { set({ groups }); markDirty() },
   setViewport: (viewport) => set({ viewport }),
 
   addNode: (type, name, position) => {
@@ -141,6 +149,47 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   updateEdge: (id, data) => {
     set((s) => ({
       edges: s.edges.map((e) => (e.id === id ? { ...e, ...data } : e)),
+    }))
+    markDirty()
+  },
+
+  addGroup: (name, nodeIds) => {
+    const id = `group-${Date.now()}`
+    set((s) => ({ groups: [...s.groups, { id, name, nodeIds }] }))
+    markDirty()
+  },
+
+  removeGroup: (id) => {
+    set((s) => ({ groups: s.groups.filter((g) => g.id !== id) }))
+    markDirty()
+  },
+
+  updateGroup: (id, data) => {
+    set((s) => ({
+      groups: s.groups.map((g) => (g.id === id ? { ...g, ...data } : g)),
+    }))
+    markDirty()
+  },
+
+  addNodesToGroup: (groupId, nodeIds) => {
+    set((s) => ({
+      groups: s.groups.map((g) => {
+        if (g.id !== groupId) return g
+        const existing = new Set(g.nodeIds)
+        const newIds = nodeIds.filter((id) => !existing.has(id))
+        return { ...g, nodeIds: [...g.nodeIds, ...newIds] }
+      }),
+    }))
+    markDirty()
+  },
+
+  removeNodesFromGroup: (groupId, nodeIds) => {
+    set((s) => ({
+      groups: s.groups.map((g) => {
+        if (g.id !== groupId) return g
+        const removeSet = new Set(nodeIds)
+        return { ...g, nodeIds: g.nodeIds.filter((id) => !removeSet.has(id)) }
+      }),
     }))
     markDirty()
   },

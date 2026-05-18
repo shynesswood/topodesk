@@ -148,3 +148,8 @@ export async function OpenFileDialog(): Promise<string> {
 export async function SaveFileDialog(defaultName?: string): Promise<string> {
   return WailsSaveFileDialog(defaultName || 'project.topology.json')
 }
+
+export async function BackupProject(project: TopologyProject, path: string): Promise<void> {
+  const wp = projectToWails(project)
+  await WailsSaveProject(wp, path)
+}

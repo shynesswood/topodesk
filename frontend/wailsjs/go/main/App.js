@@ -18,10 +18,46 @@ export function OpenFileDialog() {
   return window['go']['main']['App']['OpenFileDialog']();
 }
 
+export function SSHExecuteCommand(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  return window['go']['main']['App']['SSHExecuteCommand'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+}
+
+export function SSHReadFile(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['main']['App']['SSHReadFile'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+export function SSHReadLargeFile(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  return window['go']['main']['App']['SSHReadLargeFile'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+}
+
+export function SSHTestConnection(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['SSHTestConnection'](arg1, arg2, arg3, arg4, arg5);
+}
+
 export function SaveFileDialog(arg1) {
   return window['go']['main']['App']['SaveFileDialog'](arg1);
 }
 
 export function SaveProject(arg1, arg2) {
   return window['go']['main']['App']['SaveProject'](arg1, arg2);
+}
+
+export function ScannerCheckDocker(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['ScannerCheckDocker'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function ScannerCustomScanPorts(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ScannerCustomScanPorts'](arg1, arg2, arg3);
+}
+
+export function ScannerGetSystemInfo(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['ScannerGetSystemInfo'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function ScannerQuickScanPorts(arg1, arg2) {
+  return window['go']['main']['App']['ScannerQuickScanPorts'](arg1, arg2);
+}
+
+export function ScannerRangeScanPorts(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['ScannerRangeScanPorts'](arg1, arg2, arg3, arg4);
 }
