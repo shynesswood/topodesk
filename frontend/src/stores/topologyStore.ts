@@ -3,13 +3,6 @@ import { TopologyNode, TopologyEdge, Group, Viewport } from '../types'
 import { XYPosition } from '@xyflow/react'
 import { useProjectStore } from './projectStore'
 
-interface Snapshot {
-  nodes: TopologyNode[]
-  edges: TopologyEdge[]
-  groups: Group[]
-  viewport: Viewport
-}
-
 interface TopologyState {
   nodes: TopologyNode[]
   edges: TopologyEdge[]
@@ -19,15 +12,12 @@ interface TopologyState {
   selectedNodeIds: string[]
   selectedEdgeIds: string[]
 
-  history: Snapshot[]
-  historyIndex: number
-
   setNodes: (nodes: TopologyNode[]) => void
   setEdges: (edges: TopologyEdge[]) => void
   setGroups: (groups: Group[]) => void
   setViewport: (viewport: Viewport) => void
 
-  addNode: (type: string, name: string, position: XYPosition) => void
+  addNode: (name: string, position: XYPosition) => void
   removeNode: (id: string) => void
   removeNodes: (ids: string[]) => void
   updateNode: (id: string, data: Partial<TopologyNode>) => void
@@ -39,15 +29,11 @@ interface TopologyState {
   removeEdges: (ids: string[]) => void
   updateEdge: (id: string, data: Partial<TopologyEdge>) => void
 
-  addGroup: (name: string, nodeIds: string[]) => void
+  addGroup: (name: string, nodeIds: string[], color?: string) => void
   removeGroup: (id: string) => void
   updateGroup: (id: string, data: Partial<Group>) => void
   addNodesToGroup: (groupId: string, nodeIds: string[]) => void
   removeNodesFromGroup: (groupId: string, nodeIds: string[]) => void
-
-  pushSnapshot: () => void
-  undo: () => void
-  redo: () => void
 
   setSelectedNodeIds: (ids: string[]) => void
   setSelectedEdgeIds: (ids: string[]) => void
@@ -58,14 +44,6 @@ interface TopologyState {
 
 let nodeCounter = 0
 let edgeCounter = 0
-let _restoring = false
-let _lastSnapshotTime = 0
-const SNAPSHOT_DEBOUNCE = 300
-const MAX_HISTORY = 50
-
-function cloneSnapshot(snapshot: Snapshot): Snapshot {
-  return JSON.parse(JSON.stringify(snapshot))
-}
 
 function generateNodeId(): string {
   nodeCounter++
@@ -92,75 +70,19 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   selectedNodeIds: [],
   selectedEdgeIds: [],
 
-  history: [],
-  historyIndex: -1,
-
-  pushSnapshot: () => {
-    if (_restoring) return
-    const now = Date.now()
-    if (now - _lastSnapshotTime < SNAPSHOT_DEBOUNCE) return
-    _lastSnapshotTime = now
-
-    const s = get()
-    const snap: Snapshot = {
-      nodes: cloneSnapshot(s.nodes as unknown as Snapshot).nodes,
-      edges: cloneSnapshot(s.edges as unknown as Snapshot).edges,
-      groups: cloneSnapshot(s.groups as unknown as Snapshot).groups,
-      viewport: { ...s.viewport },
-    }
-    const newHistory = s.history.slice(0, s.historyIndex + 1)
-    newHistory.push(snap)
-    if (newHistory.length > MAX_HISTORY) newHistory.shift()
-    set({ history: newHistory, historyIndex: newHistory.length - 1 })
-  },
-
-  undo: () => {
-    const s = get()
-    if (s.historyIndex < 0) return
-    _restoring = true
-    const snap = s.history[s.historyIndex]
-    set({
-      nodes: cloneSnapshot(snap).nodes,
-      edges: cloneSnapshot(snap).edges,
-      groups: cloneSnapshot(snap).groups,
-      viewport: { ...snap.viewport },
-      historyIndex: s.historyIndex - 1,
-    })
-    markDirty()
-    _restoring = false
-  },
-
-  redo: () => {
-    const s = get()
-    if (s.historyIndex >= s.history.length - 1) return
-    _restoring = true
-    const snap = s.history[s.historyIndex + 1]
-    set({
-      nodes: cloneSnapshot(snap).nodes,
-      edges: cloneSnapshot(snap).edges,
-      groups: cloneSnapshot(snap).groups,
-      viewport: { ...snap.viewport },
-      historyIndex: s.historyIndex + 1,
-    })
-    markDirty()
-    _restoring = false
-  },
-
   setNodes: (nodes) => { set({ nodes }); markDirty() },
   setEdges: (edges) => { set({ edges }); markDirty() },
   setGroups: (groups) => { set({ groups }); markDirty() },
   setViewport: (viewport) => set({ viewport }),
 
-  addNode: (type, name, position) => {
-    get().pushSnapshot()
+  addNode: (name, position) => {
     const id = generateNodeId()
-    const node: TopologyNode = { id, type, name, position: { x: position.x, y: position.y } }
+    const node: TopologyNode = { id, name, position: { x: position.x, y: position.y } }
     set((s) => ({ nodes: [...s.nodes, node] }))
     markDirty()
   },
 
   removeNode: (id) => {
-    get().pushSnapshot()
     set((s) => ({
       nodes: s.nodes.filter((n) => n.id !== id),
       edges: s.edges.filter((e) => e.source !== id && e.target !== id),
@@ -169,7 +91,6 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   },
 
   removeNodes: (ids) => {
-    get().pushSnapshot()
     set((s) => ({
       nodes: s.nodes.filter((n) => !ids.includes(n.id)),
       edges: s.edges.filter((e) => !ids.includes(e.source) && !ids.includes(e.target)),
@@ -178,7 +99,6 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   },
 
   updateNode: (id, data) => {
-    get().pushSnapshot()
     set((s) => ({
       nodes: s.nodes.map((n) => (n.id === id ? { ...n, ...data } : n)),
     }))
@@ -186,7 +106,6 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   },
 
   moveNode: (id, position) => {
-    get().pushSnapshot()
     set((s) => ({
       nodes: s.nodes.map((n) => (n.id === id ? { ...n, position } : n)),
     }))
@@ -194,7 +113,6 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   },
 
   duplicateNode: (id) => {
-    get().pushSnapshot()
     const source = get().nodes.find((n) => n.id === id)
     if (!source) return
     const newNode: TopologyNode = {
@@ -208,47 +126,42 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   },
 
   addEdge: (edge) => {
-    get().pushSnapshot()
     const id = edge.id || generateEdgeId()
     set((s) => ({ edges: [...s.edges, { ...edge, id }] }))
     markDirty()
   },
 
   removeEdge: (id) => {
-    get().pushSnapshot()
     set((s) => ({ edges: s.edges.filter((e) => e.id !== id) }))
     markDirty()
   },
 
   removeEdges: (ids) => {
-    get().pushSnapshot()
     set((s) => ({ edges: s.edges.filter((e) => !ids.includes(e.id)) }))
     markDirty()
   },
 
   updateEdge: (id, data) => {
-    get().pushSnapshot()
     set((s) => ({
       edges: s.edges.map((e) => (e.id === id ? { ...e, ...data } : e)),
     }))
     markDirty()
   },
 
-  addGroup: (name, nodeIds) => {
-    get().pushSnapshot()
+  addGroup: (name, nodeIds, color?: string) => {
     const id = `group-${Date.now()}`
-    set((s) => ({ groups: [...s.groups, { id, name, nodeIds }] }))
+    const defaultColors = ['rgba(76, 154, 255, 0.08)', 'rgba(82, 196, 26, 0.08)', 'rgba(250, 173, 20, 0.08)', 'rgba(255, 77, 79, 0.08)', 'rgba(114, 46, 209, 0.08)', 'rgba(19, 194, 194, 0.08)']
+    const groupColor = color || defaultColors[Math.floor(Math.random() * defaultColors.length)]
+    set((s) => ({ groups: [...s.groups, { id, name, color: groupColor, nodeIds }] }))
     markDirty()
   },
 
   removeGroup: (id) => {
-    get().pushSnapshot()
     set((s) => ({ groups: s.groups.filter((g) => g.id !== id) }))
     markDirty()
   },
 
   updateGroup: (id, data) => {
-    get().pushSnapshot()
     set((s) => ({
       groups: s.groups.map((g) => (g.id === id ? { ...g, ...data } : g)),
     }))
@@ -256,7 +169,6 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   },
 
   addNodesToGroup: (groupId, nodeIds) => {
-    get().pushSnapshot()
     set((s) => ({
       groups: s.groups.map((g) => {
         if (g.id !== groupId) return g
@@ -269,7 +181,6 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   },
 
   removeNodesFromGroup: (groupId, nodeIds) => {
-    get().pushSnapshot()
     set((s) => ({
       groups: s.groups.map((g) => {
         if (g.id !== groupId) return g
@@ -285,6 +196,6 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   clearSelection: () => set({ selectedNodeIds: [], selectedEdgeIds: [] }),
 
   loadFromProject: (nodes, edges, groups, viewport) => {
-    set({ nodes, edges, groups, viewport, history: [], historyIndex: -1 })
+    set({ nodes, edges, groups, viewport })
   },
 }))

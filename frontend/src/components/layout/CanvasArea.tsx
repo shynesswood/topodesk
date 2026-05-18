@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   ReactFlow,
   Background,
@@ -22,43 +22,69 @@ import { useTopologyStore } from '../../stores/topologyStore'
 import { useUIStore } from '../../stores/uiStore'
 import { useThemeColors } from '../../hooks/useThemeColors'
 import { TopologyNodeComponent } from '../topology/TopologyNode'
+import { GroupNodeComponent } from '../topology/GroupNode'
 import { TopologyEdgeComponent } from '../topology/TopologyEdge'
+import type { TopologyNode } from '../../types'
 
-const nodeTypes = { 'topology-node': TopologyNodeComponent }
+const nodeTypes = {
+  'topology-node': TopologyNodeComponent,
+  'topology-group': GroupNodeComponent,
+}
 const edgeTypes = { 'topology-edge': TopologyEdgeComponent }
 
-function buildRfNodes(): Node[] {
-  const s = useTopologyStore.getState()
-  return s.nodes.map((n) => ({
+const GROUP_PADDING = 40
+const NODE_WIDTH = 160
+const NODE_HEIGHT = 80
+
+function buildAllRfNodes(nodesArr: TopologyNode[], groupsArr: { id: string; name: string; color?: string; nodeIds: string[] }[]): Node[] {
+  const nodeInGroup = new Map<string, string>()
+  const groupChildren = new Map<string, string[]>()
+
+  for (const g of groupsArr) {
+    for (const nid of g.nodeIds) {
+      nodeInGroup.set(nid, g.id)
+    }
+    groupChildren.set(g.id, g.nodeIds.filter((nid) => nodesArr.some((n) => n.id === nid)))
+  }
+
+  const groupNodes: Node[] = groupsArr.map((g) => {
+    const childIds = groupChildren.get(g.id) || []
+    const childNodes = nodesArr.filter((n) => childIds.includes(n.id))
+    let minX = 0, minY = 0, maxX = 200, maxY = 150
+    if (childNodes.length > 0) {
+      minX = Math.min(...childNodes.map((n) => n.position.x))
+      minY = Math.min(...childNodes.map((n) => n.position.y))
+      maxX = Math.max(...childNodes.map((n) => n.position.x + NODE_WIDTH))
+      maxY = Math.max(...childNodes.map((n) => n.position.y + NODE_HEIGHT))
+    }
+    return {
+      id: g.id,
+      type: 'topology-group',
+      position: { x: minX - GROUP_PADDING, y: minY - GROUP_PADDING },
+      data: { label: g.name, color: g.color },
+      style: {
+        width: maxX - minX + GROUP_PADDING * 2,
+        height: maxY - minY + GROUP_PADDING * 2,
+      },
+      draggable: true,
+      zIndex: -1,
+    }
+  })
+
+  const nodeItems: Node[] = nodesArr.map((n) => ({
     id: n.id,
     type: 'topology-node',
     position: n.position,
-    data: {
-      label: n.name,
-      nodeType: n.type,
-      nodeData: n,
-    },
-  })) as Node[]
-}
+    data: { label: n.name, nodeData: n },
+  }))
 
-function buildRfEdges() {
-  const s = useTopologyStore.getState()
-  return s.edges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    label: e.label,
-    type: 'topology-edge',
-    data: {
-      edgeType: e.type,
-      edgeData: e,
-    },
-  })) as Edge[]
+  return [...groupNodes, ...nodeItems]
 }
 
 export function CanvasArea() {
   const colors = useThemeColors()
   const nodes = useTopologyStore((s) => s.nodes)
+  const groups = useTopologyStore((s) => s.groups)
   const edgesList = useTopologyStore((s) => s.edges)
   const viewport = useTopologyStore((s) => s.viewport)
   const setNodes = useTopologyStore((s) => s.setNodes)
@@ -72,28 +98,37 @@ export function CanvasArea() {
   const openEdgePanel = useUIStore((s) => s.openEdgePanel)
   const closePanel = useUIStore((s) => s.closePanel)
 
-  const rfNodes: Node[] = useMemo(() => buildRfNodes(), [nodes])
-  const rfEdges: Edge[] = useMemo(() => buildRfEdges(), [edgesList])
+  const rfNodes: Node[] = useMemo(() => buildAllRfNodes(nodes, groups), [nodes, groups])
+  const rfEdges: Edge[] = useMemo(() => {
+    return edgesList.map((e) => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      label: e.label,
+      type: 'topology-edge',
+      data: { edgeData: e },
+    })) as Edge[]
+  }, [edgesList])
+
+  const isGroupNode = useCallback((id: string) => {
+    return groups.some((g) => g.id === id)
+  }, [groups])
 
   const onNodesChange = useCallback((changes: NodeChange<Node>[]) => {
     const store = useTopologyStore.getState()
     const currentNodes = store.nodes
+    const currentGroups = store.groups
     const currentRfNodes = currentNodes.map((n) => ({
       id: n.id,
       type: 'topology-node',
       position: n.position,
-      data: {
-        label: n.name,
-        nodeType: n.type,
-        nodeData: n,
-      },
+      data: { label: n.name, nodeData: n },
     })) as Node[]
 
-    const result = applyNodeChanges(changes, currentRfNodes)
+    applyNodeChanges(changes, currentRfNodes)
 
     const positionUpdates = new Map<string, { x: number; y: number }>()
     const removeIds = new Set<string>()
-    const selectedNodeIds: string[] = []
 
     changes.forEach((ch) => {
       if (ch.type === 'position' && ch.position) {
@@ -102,9 +137,6 @@ export function CanvasArea() {
       if (ch.type === 'remove') {
         removeIds.add(ch.id)
       }
-      if (ch.type === 'select' && ch.selected) {
-        selectedNodeIds.push(ch.id)
-      }
     })
 
     if (removeIds.size > 0) {
@@ -112,12 +144,39 @@ export function CanvasArea() {
     }
 
     if (positionUpdates.size > 0) {
-      setNodes(
-        currentNodes.map((n) => {
-          const pos = positionUpdates.get(n.id)
-          return pos ? { ...n, position: pos } : n
-        })
-      )
+      const groupDeltas: { groupId: string; dx: number; dy: number }[] = []
+
+      currentGroups.forEach((g) => {
+        const pos = positionUpdates.get(g.id)
+        if (pos) {
+          const oldGroupRf = buildAllRfNodes(currentNodes, currentGroups).find((n) => n.id === g.id)
+          if (oldGroupRf) {
+            groupDeltas.push({ groupId: g.id, dx: pos.x - oldGroupRf.position.x, dy: pos.y - oldGroupRf.position.y })
+          }
+        }
+        positionUpdates.delete(g.id)
+      })
+
+      let updatedNodes = currentNodes.map((n) => {
+        const pos = positionUpdates.get(n.id)
+        return pos ? { ...n, position: pos } : n
+      })
+
+      for (const { groupId, dx, dy } of groupDeltas) {
+        const group = currentGroups.find((g) => g.id === groupId)
+        if (group) {
+          updatedNodes = updatedNodes.map((n) => {
+            if (group.nodeIds.includes(n.id)) {
+              return { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } }
+            }
+            return n
+          })
+        }
+      }
+
+      if (!nodesAreEqual(currentNodes, updatedNodes)) {
+        setNodes(updatedNodes)
+      }
     }
   }, [setNodes])
 
@@ -130,9 +189,9 @@ export function CanvasArea() {
       target: e.target,
       label: e.label,
       type: 'topology-edge',
-      data: { edgeType: e.type, edgeData: e },
+      data: { edgeData: e },
     }))
-    const result = applyEdgeChanges(changes, currentRfEdges)
+    applyEdgeChanges(changes, currentRfEdges)
 
     const removeIds = new Set<string>()
     changes.forEach((ch) => {
@@ -153,8 +212,12 @@ export function CanvasArea() {
   }, [addEdge])
 
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
+    if (isGroupNode(node.id)) {
+      closePanel()
+      return
+    }
     openNodePanel(node.id)
-  }, [openNodePanel])
+  }, [openNodePanel, closePanel, isGroupNode])
 
   const onEdgeClick: EdgeMouseHandler = useCallback((_event, edge) => {
     openEdgePanel(edge.id)
@@ -163,6 +226,14 @@ export function CanvasArea() {
   const onPaneClick = useCallback(() => {
     closePanel()
   }, [closePanel])
+
+  const setSelectedNodeIds = useTopologyStore((s) => s.setSelectedNodeIds)
+  const setSelectedEdgeIds = useTopologyStore((s) => s.setSelectedEdgeIds)
+
+  const onSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedRfEdges }: { nodes: Node[]; edges: Edge[] }) => {
+    setSelectedNodeIds(selectedNodes.filter((n) => !isGroupNode(n.id)).map((n) => n.id))
+    setSelectedEdgeIds(selectedRfEdges.map((e) => e.id))
+  }, [setSelectedNodeIds, setSelectedEdgeIds, isGroupNode])
 
   const onNodeDragStop: OnNodeDrag = useCallback((_event, node) => {
     moveNode(node.id, node.position)
@@ -180,6 +251,7 @@ export function CanvasArea() {
         onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
         onNodeDragStop={onNodeDragStop}
+        onSelectionChange={onSelectionChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultViewport={viewport}
@@ -195,22 +267,18 @@ export function CanvasArea() {
         <Controls />
         <MiniMap
           nodeStrokeColor={colors.border}
-          nodeColor={(node) => {
-            const data = node.data as { nodeType?: string } | undefined
-            const colors: Record<string, string> = {
-              'Server': '#4c9aff',
-              'Database': '#f5a623',
-              'Redis': '#dc3545',
-              'MQ': '#6f42c1',
-              'Gateway': '#28a745',
-              'API': '#17a2b8',
-              'External Service': '#6c757d',
-            }
-            return colors[data?.nodeType || ''] || '#6c757d'
-          }}
+          nodeColor="#4c9aff"
           maskColor="rgba(0,0,0,0.5)"
         />
       </ReactFlow>
     </div>
   )
+}
+
+function nodesAreEqual(a: TopologyNode[], b: TopologyNode[]): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].position.x !== b[i].position.x || a[i].position.y !== b[i].position.y) return false
+  }
+  return true
 }

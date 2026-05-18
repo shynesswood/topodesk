@@ -1,9 +1,11 @@
 export interface SoftwareInfo {
   name: string
   installPath?: string
-  startCommand?: string
+  dataPath?: string
   logPath?: string
-  configPath?: string
+  startCommand?: string
+  stopCommand?: string
+  restartCommand?: string
 }
 
 export interface SSHInfo {
@@ -15,10 +17,9 @@ export interface SSHInfo {
 
 export interface TopologyNode {
   id: string
-  type: string
   name: string
   ip?: string
-  port?: number
+  description?: string
 
   position: {
     x: number
@@ -27,19 +28,4 @@ export interface TopologyNode {
 
   ssh?: SSHInfo
   software?: SoftwareInfo[]
-  tags?: string[]
-
-  metadata?: Record<string, string>
 }
-
-export const NODE_TYPES = [
-  'Server',
-  'Database',
-  'Redis',
-  'MQ',
-  'Gateway',
-  'API',
-  'External Service',
-] as const
-
-export type NodeType = (typeof NODE_TYPES)[number]

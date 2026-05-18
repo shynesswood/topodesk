@@ -4,8 +4,6 @@ import {
   SaveOutlined,
   FolderOpenOutlined,
   FileAddOutlined,
-  UndoOutlined,
-  RedoOutlined,
   AimOutlined,
   SunOutlined,
   MoonOutlined,
@@ -29,7 +27,7 @@ import {
 
 export function Toolbar() {
   const { currentProject, isDirty, setProject, markSaved, setFilePath, createBlank } = useProjectStore()
-  const { nodes, edges, groups, viewport, loadFromProject, history, historyIndex, undo, redo } = useTopologyStore()
+  const { nodes, edges, groups, viewport, loadFromProject } = useTopologyStore()
   const { theme, toggleTheme } = useSettingsStore()
   const { recentProjects, addRecent, removeRecent } = useRecentStore()
   const colors = useThemeColors()
@@ -37,9 +35,6 @@ export function Toolbar() {
   const [editingName, setEditingName] = useState(false)
   const [tempName, setTempName] = useState('')
   const [saving, setSaving] = useState(false)
-
-  const canUndo = historyIndex >= 0
-  const canRedo = historyIndex < history.length - 1
 
   async function handleOpenRecent(path: string) {
     try {
@@ -234,12 +229,6 @@ export function Toolbar() {
       <Space size="small">
         <Tooltip title="自动布局">
           <Button type="text" size="small" icon={<AimOutlined />} onClick={handleAutoLayout} disabled={!hasProject} />
-        </Tooltip>
-        <Tooltip title="撤销 (Ctrl+Z)">
-          <Button type="text" size="small" icon={<UndoOutlined />} onClick={undo} disabled={!canUndo} />
-        </Tooltip>
-        <Tooltip title="重做 (Ctrl+Y)">
-          <Button type="text" size="small" icon={<RedoOutlined />} onClick={redo} disabled={!canRedo} />
         </Tooltip>
       </Space>
 

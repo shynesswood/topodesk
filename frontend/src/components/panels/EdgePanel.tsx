@@ -1,8 +1,7 @@
-import { Form, Input, Select, Button } from 'antd'
+import { Form, Input, Button } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
 import { useTopologyStore } from '../../stores/topologyStore'
 import { useUIStore } from '../../stores/uiStore'
-import { EDGE_TYPES } from '../../types'
 
 export function EdgePanel() {
   const selectedEdgeId = useUIStore((s) => s.selectedEdgeId)
@@ -39,18 +38,11 @@ export function EdgePanel() {
       </div>
 
       <Form layout="vertical" size="small">
-        <Form.Item label="连线类型" style={{ marginBottom: 8 }}>
-          <Select
-            value={edge.type || 'Custom'}
-            onChange={(v) => handleChange('type', v)}
-            options={EDGE_TYPES.map((t) => ({ label: t, value: t }))}
-          />
-        </Form.Item>
         <Form.Item label="标签" style={{ marginBottom: 8 }}>
           <Input
             value={edge.label || ''}
             onChange={(e) => handleChange('label', e.target.value)}
-            placeholder="HTTP / RPC / 数据库..."
+            placeholder="连线说明..."
           />
         </Form.Item>
       </Form>

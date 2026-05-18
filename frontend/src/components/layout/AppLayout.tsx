@@ -5,7 +5,6 @@ import { Sidebar } from './Sidebar'
 import { CanvasArea } from './CanvasArea'
 import { NodePanel } from '../panels/NodePanel'
 import { EdgePanel } from '../panels/EdgePanel'
-import { ScannerPanel } from '../panels/ScannerPanel'
 import { GroupPanel } from '../panels/GroupPanel'
 import { useUIStore } from '../../stores/uiStore'
 import { useProjectStore } from '../../stores/projectStore'
@@ -78,7 +77,6 @@ export function AppLayout() {
           <Sider width={340} style={{ background: colors.panelBg, borderLeft: `1px solid ${colors.border}` }}>
             {activePanel === 'node' && <NodePanel />}
             {activePanel === 'edge' && <EdgePanel />}
-            {activePanel === 'scanner' && <ScannerPanel />}
             {activePanel === 'group' && <GroupPanel />}
           </Sider>
         )}

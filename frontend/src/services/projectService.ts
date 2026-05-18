@@ -6,7 +6,7 @@ import {
   OpenFileDialog as WailsOpenFileDialog,
   SaveFileDialog as WailsSaveFileDialog,
 } from '../../wailsjs/go/main/App'
-import { TopologyProject, TopologyNode, TopologyEdge, Viewport } from '../types'
+import { TopologyProject } from '../types'
 
 function projectToWails(p: TopologyProject): models.TopologyProject {
   const wp = new models.TopologyProject()
@@ -20,10 +20,9 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
   wp.nodes = p.nodes.map((n) => {
     const wn = new models.Node()
     wn.id = n.id
-    wn.type = n.type
     wn.name = n.name
     wn.ip = n.ip
-    wn.port = n.port
+    wn.description = n.description
     wn.position = new models.Position()
     wn.position.x = n.position.x
     wn.position.y = n.position.y
@@ -38,13 +37,13 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
       const ws = new models.SoftwareInfo()
       ws.name = s.name
       ws.installPath = s.installPath
-      ws.startCommand = s.startCommand
+      ws.dataPath = s.dataPath
       ws.logPath = s.logPath
-      ws.configPath = s.configPath
+      ws.startCommand = s.startCommand
+      ws.stopCommand = s.stopCommand
+      ws.restartCommand = s.restartCommand
       return ws
     })
-    wn.tags = n.tags || []
-    wn.metadata = n.metadata || {}
     return wn
   })
 
@@ -53,7 +52,6 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
     we.id = e.id
     we.source = e.source
     we.target = e.target
-    we.type = e.type
     we.label = e.label
     return we
   })
@@ -62,6 +60,7 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
     const wg = new models.Group()
     wg.id = g.id
     wg.name = g.name
+    wg.color = g.color
     wg.nodeIds = g.nodeIds
     return wg
   })
@@ -85,10 +84,9 @@ function projectFromWails(wp: models.TopologyProject): TopologyProject {
     },
     nodes: wp.nodes.map((n) => ({
       id: n.id,
-      type: n.type,
       name: n.name,
       ip: n.ip,
-      port: n.port,
+      description: n.description,
       position: { x: n.position.x, y: n.position.y },
       ssh: n.ssh ? {
         username: n.ssh.username,
@@ -99,23 +97,23 @@ function projectFromWails(wp: models.TopologyProject): TopologyProject {
       software: n.software?.map((s) => ({
         name: s.name,
         installPath: s.installPath,
-        startCommand: s.startCommand,
+        dataPath: s.dataPath,
         logPath: s.logPath,
-        configPath: s.configPath,
+        startCommand: s.startCommand,
+        stopCommand: s.stopCommand,
+        restartCommand: s.restartCommand,
       })),
-      tags: n.tags || [],
-      metadata: n.metadata || {},
     })),
     edges: wp.edges.map((e) => ({
       id: e.id,
       source: e.source,
       target: e.target,
-      type: e.type,
       label: e.label,
     })),
     groups: wp.groups.map((g) => ({
       id: g.id,
       name: g.name,
+      color: g.color,
       nodeIds: g.nodeIds,
     })),
     viewport: {

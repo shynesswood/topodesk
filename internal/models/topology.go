@@ -3,11 +3,13 @@ package models
 import "time"
 
 type SoftwareInfo struct {
-	Name         string `json:"name"`
-	InstallPath  string `json:"installPath,omitempty"`
-	StartCommand string `json:"startCommand,omitempty"`
-	LogPath      string `json:"logPath,omitempty"`
-	ConfigPath   string `json:"configPath,omitempty"`
+	Name           string `json:"name"`
+	InstallPath    string `json:"installPath,omitempty"`
+	DataPath       string `json:"dataPath,omitempty"`
+	LogPath        string `json:"logPath,omitempty"`
+	StartCommand   string `json:"startCommand,omitempty"`
+	StopCommand    string `json:"stopCommand,omitempty"`
+	RestartCommand string `json:"restartCommand,omitempty"`
 }
 
 type SSHInfo struct {
@@ -23,16 +25,13 @@ type Position struct {
 }
 
 type Node struct {
-	ID       string            `json:"id"`
-	Type     string            `json:"type"`
-	Name     string            `json:"name"`
-	IP       string            `json:"ip,omitempty"`
-	Port     int               `json:"port,omitempty"`
-	Position Position          `json:"position"`
-	SSH      *SSHInfo          `json:"ssh,omitempty"`
-	Software []SoftwareInfo    `json:"software,omitempty"`
-	Tags     []string          `json:"tags,omitempty"`
-	Metadata map[string]string `json:"metadata,omitempty"`
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	IP          string         `json:"ip,omitempty"`
+	Description string         `json:"description,omitempty"`
+	Position    Position       `json:"position"`
+	SSH         *SSHInfo       `json:"ssh,omitempty"`
+	Software    []SoftwareInfo `json:"software,omitempty"`
 }
 
 type Edge struct {
@@ -46,6 +45,7 @@ type Edge struct {
 type Group struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
+	Color   string   `json:"color,omitempty"`
 	NodeIDs []string `json:"nodeIds"`
 }
 

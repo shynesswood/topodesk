@@ -5,6 +5,15 @@ import { useTopologyStore } from '../../stores/topologyStore'
 import { useUIStore } from '../../stores/uiStore'
 import { useThemeColors } from '../../hooks/useThemeColors'
 
+const GROUP_COLORS = [
+  'rgba(76, 154, 255, 0.08)',
+  'rgba(82, 196, 26, 0.08)',
+  'rgba(250, 173, 20, 0.08)',
+  'rgba(255, 77, 79, 0.08)',
+  'rgba(114, 46, 209, 0.08)',
+  'rgba(19, 194, 194, 0.08)',
+]
+
 export function GroupPanel() {
   const groups = useTopologyStore((s) => s.groups)
   const nodes = useTopologyStore((s) => s.nodes)
@@ -21,11 +30,13 @@ export function GroupPanel() {
   const [editName, setEditName] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
+  const [newGroupColor, setNewGroupColor] = useState(GROUP_COLORS[0])
 
   function handleAddGroup() {
     if (!newGroupName.trim()) return
-    addGroup(newGroupName.trim(), selectedNodeIds.length > 0 ? [...selectedNodeIds] : [])
+    addGroup(newGroupName.trim(), selectedNodeIds.length > 0 ? [...selectedNodeIds] : [], newGroupColor)
     setNewGroupName('')
+    setNewGroupColor(GROUP_COLORS[0])
     setShowAddModal(false)
     message.success('分组已添加')
   }
@@ -58,6 +69,10 @@ export function GroupPanel() {
 
   function handleRemoveNodeFromGroup(groupId: string, nodeId: string) {
     removeNodesFromGroup(groupId, [nodeId])
+  }
+
+  function handleColorChange(groupId: string, color: string) {
+    updateGroup(groupId, { color })
   }
 
   return (
@@ -134,6 +149,22 @@ export function GroupPanel() {
                 ) : (
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>{group.name}</div>
                 )}
+                <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+                  {GROUP_COLORS.map((c) => (
+                    <div
+                      key={c}
+                      onClick={() => handleColorChange(group.id, c)}
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 4,
+                        background: c,
+                        border: group.color === c ? '2px solid #58a6ff' : '2px solid transparent',
+                        cursor: 'pointer',
+                      }}
+                    />
+                  ))}
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {group.nodeIds.map((nodeId) => {
                     const node = nodes.find((n) => n.id === nodeId)
@@ -149,7 +180,7 @@ export function GroupPanel() {
                     )
                   })}
                   {group.nodeIds.length === 0 && (
-                    <span style={{ color: colors.textSecondary, fontSize: 10 }}>空分组</span>
+                    <span style={{ color: colors.textSecondary, fontSize: 10 }}>空分组，Shift+选择节点后点 + 添加</span>
                   )}
                 </div>
               </div>
@@ -173,6 +204,25 @@ export function GroupPanel() {
           onPressEnter={handleAddGroup}
           autoFocus
         />
+        <div style={{ marginTop: 12 }}>
+          <div style={{ marginBottom: 6, fontSize: 12 }}>选择颜色：</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {GROUP_COLORS.map((c) => (
+              <div
+                key={c}
+                onClick={() => setNewGroupColor(c)}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 4,
+                  background: c,
+                  border: newGroupColor === c ? '2px solid #58a6ff' : '2px solid transparent',
+                  cursor: 'pointer',
+                }}
+              />
+            ))}
+          </div>
+        </div>
         {selectedNodeIds.length > 0 && (
           <div style={{ marginTop: 8, color: colors.textSecondary, fontSize: 11 }}>
             将包含 {selectedNodeIds.length} 个选中节点
