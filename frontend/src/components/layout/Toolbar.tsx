@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Space, Tooltip, Input, message, Modal, Menu, Dropdown } from 'antd'
+import { Button, Space, Tooltip, Input, message, Dropdown } from 'antd'
 import {
   SaveOutlined,
   FolderOpenOutlined,
@@ -12,9 +12,7 @@ import {
   EditOutlined,
   CheckOutlined,
   CloseOutlined,
-  HistoryOutlined,
   DeleteOutlined,
-  CloudUploadOutlined,
 } from '@ant-design/icons'
 import { useProjectStore } from '../../stores/projectStore'
 import { useTopologyStore } from '../../stores/topologyStore'
@@ -31,7 +29,7 @@ import {
 
 export function Toolbar() {
   const { currentProject, isDirty, setProject, markSaved, setFilePath, createBlank } = useProjectStore()
-  const { nodes, edges, groups, viewport, loadFromProject, setNodes, setEdges, setGroups, setViewport } = useTopologyStore()
+  const { nodes, edges, groups, viewport, loadFromProject, history, historyIndex, undo, redo } = useTopologyStore()
   const { theme, toggleTheme } = useSettingsStore()
   const { recentProjects, addRecent, removeRecent } = useRecentStore()
   const colors = useThemeColors()
@@ -39,36 +37,9 @@ export function Toolbar() {
   const [editingName, setEditingName] = useState(false)
   const [tempName, setTempName] = useState('')
   const [saving, setSaving] = useState(false)
-  const [history, setHistory] = useState<Array<{ nodes: typeof nodes; edges: typeof edges; groups: typeof groups; viewport: typeof viewport }>>([])
-  const [historyIndex, setHistoryIndex] = useState(-1)
 
-  function pushHistory() {
-    const newHistory = history.slice(0, historyIndex + 1)
-    newHistory.push({ nodes: [...nodes], edges: [...edges], groups: [...groups], viewport: { ...viewport } })
-    if (newHistory.length > 50) newHistory.shift()
-    setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
-  }
-
-  function handleUndo() {
-    if (historyIndex <= 0) return
-    const prev = history[historyIndex - 1]
-    setNodes(prev.nodes)
-    setEdges(prev.edges)
-    setGroups(prev.groups)
-    setViewport(prev.viewport)
-    setHistoryIndex(historyIndex - 1)
-  }
-
-  function handleRedo() {
-    if (historyIndex >= history.length - 1) return
-    const next = history[historyIndex + 1]
-    setNodes(next.nodes)
-    setEdges(next.edges)
-    setGroups(next.groups)
-    setViewport(next.viewport)
-    setHistoryIndex(historyIndex + 1)
-  }
+  const canUndo = historyIndex >= 0
+  const canRedo = historyIndex < history.length - 1
 
   async function handleOpenRecent(path: string) {
     try {
@@ -160,7 +131,7 @@ export function Toolbar() {
       markSaved()
       addRecent(path, finalProject.project.name)
       message.success('项目已保存')
-    } catch (e) {
+    } catch {
       message.error('保存失败')
     } finally {
       setSaving(false)
@@ -200,9 +171,10 @@ export function Toolbar() {
   }
 
   const hasProject = currentProject !== null
-  const shortName = currentProject?.project.name.length
-    ? (currentProject.project.name.length > 16
-      ? currentProject.project.name.slice(0, 16) + '...'
+  const maxLen = 20
+  const shortName = currentProject?.project.name
+    ? (currentProject.project.name.length > maxLen
+      ? currentProject.project.name.slice(0, maxLen) + '...'
       : currentProject.project.name)
     : ''
 
@@ -263,11 +235,11 @@ export function Toolbar() {
         <Tooltip title="自动布局">
           <Button type="text" size="small" icon={<AimOutlined />} onClick={handleAutoLayout} disabled={!hasProject} />
         </Tooltip>
-        <Tooltip title="撤销">
-          <Button type="text" size="small" icon={<UndoOutlined />} onClick={handleUndo} disabled={historyIndex <= 0} />
+        <Tooltip title="撤销 (Ctrl+Z)">
+          <Button type="text" size="small" icon={<UndoOutlined />} onClick={undo} disabled={!canUndo} />
         </Tooltip>
-        <Tooltip title="重做">
-          <Button type="text" size="small" icon={<RedoOutlined />} onClick={handleRedo} disabled={historyIndex >= history.length - 1} />
+        <Tooltip title="重做 (Ctrl+Y)">
+          <Button type="text" size="small" icon={<RedoOutlined />} onClick={redo} disabled={!canRedo} />
         </Tooltip>
       </Space>
 

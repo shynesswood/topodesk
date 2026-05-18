@@ -47,7 +47,12 @@ func (a *App) LoadProject(path string) (*models.TopologyProject, error) {
 }
 
 func (a *App) OpenFileDialog() (string, error) {
-	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{})
+	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Filters: []runtime.FileFilter{
+			{DisplayName: "拓扑文件 (*.topology.json)", Pattern: "*.topology.json"},
+			{DisplayName: "所有文件 (*.*)", Pattern: "*.*"},
+		},
+	})
 }
 
 func (a *App) SaveFileDialog(defaultName string) (string, error) {
@@ -56,6 +61,10 @@ func (a *App) SaveFileDialog(defaultName string) (string, error) {
 	}
 	return runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		DefaultFilename: defaultName,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "拓扑文件 (*.topology.json)", Pattern: "*.topology.json"},
+			{DisplayName: "所有文件 (*.*)", Pattern: "*.*"},
+		},
 	})
 }
 
