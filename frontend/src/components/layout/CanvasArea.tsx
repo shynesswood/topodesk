@@ -24,7 +24,7 @@ import { useThemeColors } from '../../hooks/useThemeColors'
 import { TopologyNodeComponent } from '../topology/TopologyNode'
 import { GroupNodeComponent } from '../topology/GroupNode'
 import { TopologyEdgeComponent } from '../topology/TopologyEdge'
-import type { TopologyNode } from '../../types'
+import type { Group } from '../../types'
 
 const nodeTypes = {
   'topology-node': TopologyNodeComponent,
@@ -32,44 +32,18 @@ const nodeTypes = {
 }
 const edgeTypes = { 'topology-edge': TopologyEdgeComponent }
 
-const GROUP_PADDING = 40
-const NODE_WIDTH = 160
-const NODE_HEIGHT = 80
-
-function buildAllRfNodes(nodesArr: TopologyNode[], groupsArr: { id: string; name: string; color?: string; nodeIds: string[] }[]): Node[] {
-  const nodeInGroup = new Map<string, string>()
-  const groupChildren = new Map<string, string[]>()
-
-  for (const g of groupsArr) {
-    for (const nid of g.nodeIds) {
-      nodeInGroup.set(nid, g.id)
-    }
-    groupChildren.set(g.id, g.nodeIds.filter((nid) => nodesArr.some((n) => n.id === nid)))
-  }
-
-  const groupNodes: Node[] = groupsArr.map((g) => {
-    const childIds = groupChildren.get(g.id) || []
-    const childNodes = nodesArr.filter((n) => childIds.includes(n.id))
-    let minX = 0, minY = 0, maxX = 200, maxY = 150
-    if (childNodes.length > 0) {
-      minX = Math.min(...childNodes.map((n) => n.position.x))
-      minY = Math.min(...childNodes.map((n) => n.position.y))
-      maxX = Math.max(...childNodes.map((n) => n.position.x + NODE_WIDTH))
-      maxY = Math.max(...childNodes.map((n) => n.position.y + NODE_HEIGHT))
-    }
-    return {
-      id: g.id,
-      type: 'topology-group',
-      position: { x: minX - GROUP_PADDING, y: minY - GROUP_PADDING },
-      data: { label: g.name, color: g.color },
-      style: {
-        width: maxX - minX + GROUP_PADDING * 2,
-        height: maxY - minY + GROUP_PADDING * 2,
-      },
-      draggable: true,
-      zIndex: -1,
-    }
-  })
+function buildAllRfNodes(nodesArr: { id: string; name: string; position: { x: number; y: number }; ip?: string; description?: string }[], groupsArr: Group[]): Node[] {
+  const groupNodes: Node[] = groupsArr.map((g) => ({
+    id: g.id,
+    type: 'topology-group',
+    position: { x: g.position?.x || 100, y: g.position?.y || 100 },
+    data: { label: g.name, color: g.color },
+    style: {
+      width: g.width || 300,
+      height: g.height || 200,
+    },
+    draggable: true,
+  }))
 
   const nodeItems: Node[] = nodesArr.map((n) => ({
     id: n.id,
@@ -93,6 +67,7 @@ export function CanvasArea() {
   const removeNodes = useTopologyStore((s) => s.removeNodes)
   const removeEdges = useTopologyStore((s) => s.removeEdges)
   const moveNode = useTopologyStore((s) => s.moveNode)
+  const moveGroupPosition = useTopologyStore((s) => s.moveGroupPosition)
 
   const openNodePanel = useUIStore((s) => s.openNodePanel)
   const openEdgePanel = useUIStore((s) => s.openEdgePanel)
@@ -118,14 +93,6 @@ export function CanvasArea() {
     const store = useTopologyStore.getState()
     const currentNodes = store.nodes
     const currentGroups = store.groups
-    const currentRfNodes = currentNodes.map((n) => ({
-      id: n.id,
-      type: 'topology-node',
-      position: n.position,
-      data: { label: n.name, nodeData: n },
-    })) as Node[]
-
-    applyNodeChanges(changes, currentRfNodes)
 
     const positionUpdates = new Map<string, { x: number; y: number }>()
     const removeIds = new Set<string>()
@@ -140,7 +107,19 @@ export function CanvasArea() {
     })
 
     if (removeIds.size > 0) {
-      store.removeNodes([...removeIds])
+      const groupRemoveIds = new Set<string>()
+      removeIds.forEach((id) => {
+        if (currentGroups.some((g) => g.id === id)) {
+          groupRemoveIds.add(id)
+          removeIds.delete(id)
+        }
+      })
+      if (groupRemoveIds.size > 0) {
+        groupRemoveIds.forEach((gid) => store.removeGroup(gid))
+      }
+      if (removeIds.size > 0) {
+        store.removeNodes([...removeIds])
+      }
     }
 
     if (positionUpdates.size > 0) {
@@ -149,10 +128,9 @@ export function CanvasArea() {
       currentGroups.forEach((g) => {
         const pos = positionUpdates.get(g.id)
         if (pos) {
-          const oldGroupRf = buildAllRfNodes(currentNodes, currentGroups).find((n) => n.id === g.id)
-          if (oldGroupRf) {
-            groupDeltas.push({ groupId: g.id, dx: pos.x - oldGroupRf.position.x, dy: pos.y - oldGroupRf.position.y })
-          }
+          const oldPos = g.position || { x: 100, y: 100 }
+          groupDeltas.push({ groupId: g.id, dx: pos.x - oldPos.x, dy: pos.y - oldPos.y })
+          moveGroupPosition(g.id, pos)
         }
         positionUpdates.delete(g.id)
       })
@@ -164,7 +142,7 @@ export function CanvasArea() {
 
       for (const { groupId, dx, dy } of groupDeltas) {
         const group = currentGroups.find((g) => g.id === groupId)
-        if (group) {
+        if (group && (dx !== 0 || dy !== 0)) {
           updatedNodes = updatedNodes.map((n) => {
             if (group.nodeIds.includes(n.id)) {
               return { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } }
@@ -174,11 +152,11 @@ export function CanvasArea() {
         }
       }
 
-      if (!nodesAreEqual(currentNodes, updatedNodes)) {
+      if (updatedNodes.some((n, i) => n.position.x !== currentNodes[i]?.position.x || n.position.y !== currentNodes[i]?.position.y)) {
         setNodes(updatedNodes)
       }
     }
-  }, [setNodes])
+  }, [moveGroupPosition, setNodes])
 
   const onEdgesChange = useCallback((changes: EdgeChange<Edge>[]) => {
     const store = useTopologyStore.getState()
@@ -236,8 +214,12 @@ export function CanvasArea() {
   }, [setSelectedNodeIds, setSelectedEdgeIds, isGroupNode])
 
   const onNodeDragStop: OnNodeDrag = useCallback((_event, node) => {
-    moveNode(node.id, node.position)
-  }, [moveNode])
+    if (isGroupNode(node.id)) {
+      moveGroupPosition(node.id, node.position)
+    } else {
+      moveNode(node.id, node.position)
+    }
+  }, [moveNode, moveGroupPosition, isGroupNode])
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
@@ -273,12 +255,4 @@ export function CanvasArea() {
       </ReactFlow>
     </div>
   )
-}
-
-function nodesAreEqual(a: TopologyNode[], b: TopologyNode[]): boolean {
-  if (a.length !== b.length) return false
-  for (let i = 0; i < a.length; i++) {
-    if (a[i].position.x !== b[i].position.x || a[i].position.y !== b[i].position.y) return false
-  }
-  return true
 }

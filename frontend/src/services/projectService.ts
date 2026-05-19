@@ -62,6 +62,11 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
     wg.name = g.name
     wg.color = g.color
     wg.nodeIds = g.nodeIds
+    wg.position = new models.Position()
+    wg.position.x = g.position.x || 0
+    wg.position.y = g.position.y || 0
+    wg.width = g.width || 300
+    wg.height = g.height || 200
     return wg
   })
 
@@ -115,6 +120,9 @@ function projectFromWails(wp: models.TopologyProject): TopologyProject {
       name: g.name,
       color: g.color,
       nodeIds: g.nodeIds,
+      position: { x: g.position?.x || 0, y: g.position?.y || 0 },
+      width: g.width || 300,
+      height: g.height || 200,
     })),
     viewport: {
       x: wp.viewport.x,

@@ -43,10 +43,13 @@ type Edge struct {
 }
 
 type Group struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	Color   string   `json:"color,omitempty"`
-	NodeIDs []string `json:"nodeIds"`
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	Color    string   `json:"color,omitempty"`
+	NodeIDs  []string `json:"nodeIds"`
+	Position Position `json:"position"`
+	Width    float64  `json:"width"`
+	Height   float64  `json:"height"`
 }
 
 type Viewport struct {

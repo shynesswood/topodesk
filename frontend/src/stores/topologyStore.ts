@@ -29,9 +29,11 @@ interface TopologyState {
   removeEdges: (ids: string[]) => void
   updateEdge: (id: string, data: Partial<TopologyEdge>) => void
 
-  addGroup: (name: string, nodeIds: string[], color?: string) => void
+  addGroup: (name: string, nodeIds: string[], color?: string, position?: { x: number; y: number }) => void
   removeGroup: (id: string) => void
   updateGroup: (id: string, data: Partial<Group>) => void
+  moveGroupPosition: (id: string, position: { x: number; y: number }) => void
+  resizeGroup: (id: string, width: number, height: number, position?: { x: number; y: number }) => void
   addNodesToGroup: (groupId: string, nodeIds: string[]) => void
   removeNodesFromGroup: (groupId: string, nodeIds: string[]) => void
 
@@ -148,11 +150,16 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
     markDirty()
   },
 
-  addGroup: (name, nodeIds, color?: string) => {
+  addGroup: (name, nodeIds, color?, position?) => {
     const id = `group-${Date.now()}`
     const defaultColors = ['rgba(76, 154, 255, 0.08)', 'rgba(82, 196, 26, 0.08)', 'rgba(250, 173, 20, 0.08)', 'rgba(255, 77, 79, 0.08)', 'rgba(114, 46, 209, 0.08)', 'rgba(19, 194, 194, 0.08)']
     const groupColor = color || defaultColors[Math.floor(Math.random() * defaultColors.length)]
-    set((s) => ({ groups: [...s.groups, { id, name, color: groupColor, nodeIds }] }))
+    set((s) => ({ groups: [...s.groups, {
+      id, name, color: groupColor, nodeIds,
+      position: position || { x: 150, y: 150 },
+      width: 300,
+      height: 200,
+    }] }))
     markDirty()
   },
 
@@ -164,6 +171,25 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   updateGroup: (id, data) => {
     set((s) => ({
       groups: s.groups.map((g) => (g.id === id ? { ...g, ...data } : g)),
+    }))
+    markDirty()
+  },
+
+  moveGroupPosition: (id, position) => {
+    set((s) => ({
+      groups: s.groups.map((g) => (g.id === id ? { ...g, position } : g)),
+    }))
+    markDirty()
+  },
+
+  resizeGroup: (id, width, height, position?) => {
+    set((s) => ({
+      groups: s.groups.map((g) => {
+        if (g.id !== id) return g
+        const updated: Group = { ...g, width, height }
+        if (position) updated.position = position
+        return updated
+      }),
     }))
     markDirty()
   },
