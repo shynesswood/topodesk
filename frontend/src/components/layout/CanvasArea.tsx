@@ -68,9 +68,12 @@ export function CanvasArea() {
   const removeEdges = useTopologyStore((s) => s.removeEdges)
   const moveNode = useTopologyStore((s) => s.moveNode)
   const moveGroupPosition = useTopologyStore((s) => s.moveGroupPosition)
+  const addNodesToGroup = useTopologyStore((s) => s.addNodesToGroup)
+  const removeNodesFromGroup = useTopologyStore((s) => s.removeNodesFromGroup)
 
   const openNodePanel = useUIStore((s) => s.openNodePanel)
   const openEdgePanel = useUIStore((s) => s.openEdgePanel)
+  const openGroupPanel = useUIStore((s) => s.openGroupPanel)
   const closePanel = useUIStore((s) => s.closePanel)
 
   const rfNodes: Node[] = useMemo(() => buildAllRfNodes(nodes, groups), [nodes, groups])
@@ -191,11 +194,11 @@ export function CanvasArea() {
 
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     if (isGroupNode(node.id)) {
-      closePanel()
+      openGroupPanel(node.id)
       return
     }
     openNodePanel(node.id)
-  }, [openNodePanel, closePanel, isGroupNode])
+  }, [openNodePanel, openGroupPanel, isGroupNode])
 
   const onEdgeClick: EdgeMouseHandler = useCallback((_event, edge) => {
     openEdgePanel(edge.id)
@@ -216,10 +219,43 @@ export function CanvasArea() {
   const onNodeDragStop: OnNodeDrag = useCallback((_event, node) => {
     if (isGroupNode(node.id)) {
       moveGroupPosition(node.id, node.position)
-    } else {
-      moveNode(node.id, node.position)
+      return
     }
-  }, [moveNode, moveGroupPosition, isGroupNode])
+
+    moveNode(node.id, node.position)
+
+    const store = useTopologyStore.getState()
+    const currentGroups = store.groups
+
+    if (currentGroups.length === 0) return
+
+    const nodeW = 180
+    const nodeH = 80
+    const cx = node.position.x + nodeW / 2
+    const cy = node.position.y + nodeH / 2
+
+    const groupsToJoin: string[] = []
+    const groupsToLeave: string[] = []
+
+    for (const g of currentGroups) {
+      const gx = g.position?.x || 0
+      const gy = g.position?.y || 0
+      const gw = g.width || 300
+      const gh = g.height || 200
+
+      const inside = cx >= gx && cx <= gx + gw && cy >= gy && cy <= gy + gh
+      const isMember = g.nodeIds.includes(node.id)
+
+      if (inside && !isMember) {
+        groupsToJoin.push(g.id)
+      } else if (!inside && isMember) {
+        groupsToLeave.push(g.id)
+      }
+    }
+
+    for (const gid of groupsToJoin) addNodesToGroup(gid, [node.id])
+    for (const gid of groupsToLeave) removeNodesFromGroup(gid, [node.id])
+  }, [moveNode, moveGroupPosition, isGroupNode, addNodesToGroup, removeNodesFromGroup])
 
   return (
     <div style={{ width: '100%', height: '100%' }}>

@@ -1,12 +1,10 @@
 import { useTopologyStore } from '../../stores/topologyStore'
-import { useUIStore } from '../../stores/uiStore'
 import { useThemeColors } from '../../hooks/useThemeColors'
-import { GroupOutlined, PlusOutlined, AppstoreAddOutlined } from '@ant-design/icons'
+import { PlusOutlined, AppstoreAddOutlined } from '@ant-design/icons'
 
 export function Sidebar() {
   const addNode = useTopologyStore((s) => s.addNode)
   const addGroup = useTopologyStore((s) => s.addGroup)
-  const openGroupPanel = useUIStore((s) => s.openGroupPanel)
   const colors = useThemeColors()
 
   function handleAddNode() {
@@ -56,34 +54,10 @@ export function Sidebar() {
           fontSize: 12,
           width: '100%',
           textAlign: 'left' as const,
-          marginBottom: 4,
         }}
       >
         <AppstoreAddOutlined />
         新建分组
-      </button>
-
-      <div style={{ borderTop: `1px solid ${colors.border}`, margin: '12px 0' }} />
-
-      <button
-        onClick={openGroupPanel}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '6px 10px',
-          border: `1px solid ${colors.border}`,
-          borderRadius: 4,
-          background: colors.nodeBg,
-          color: colors.textPrimary,
-          cursor: 'pointer',
-          fontSize: 12,
-          width: '100%',
-          textAlign: 'left' as const,
-        }}
-      >
-        <GroupOutlined />
-        管理分组
       </button>
     </div>
   )
