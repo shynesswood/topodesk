@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"runtime"
 
 	"topodesk/internal/models"
 	"topodesk/internal/project"
 	"topodesk/internal/ssh"
 	"topodesk/internal/storage"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
@@ -43,12 +44,19 @@ func (a *App) LoadProject(path string) (*models.TopologyProject, error) {
 	return a.projectService.Load(path)
 }
 
+func fileFilters() []wailsRuntime.FileFilter {
+	if runtime.GOOS == "darwin" {
+		return nil
+	}
+	return []wailsRuntime.FileFilter{
+		{DisplayName: "拓扑文件 (*.topology.json)", Pattern: "*.topology.json"},
+		{DisplayName: "所有文件 (*.*)", Pattern: "*.*"},
+	}
+}
+
 func (a *App) OpenFileDialog() (string, error) {
-	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Filters: []runtime.FileFilter{
-			{DisplayName: "拓扑文件 (*.topology.json)", Pattern: "*.topology.json"},
-			{DisplayName: "所有文件 (*.*)", Pattern: "*.*"},
-		},
+	return wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Filters: fileFilters(),
 	})
 }
 
@@ -56,12 +64,9 @@ func (a *App) SaveFileDialog(defaultName string) (string, error) {
 	if defaultName == "" {
 		defaultName = "project.topology.json"
 	}
-	return runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+	return wailsRuntime.SaveFileDialog(a.ctx, wailsRuntime.SaveDialogOptions{
 		DefaultFilename: defaultName,
-		Filters: []runtime.FileFilter{
-			{DisplayName: "拓扑文件 (*.topology.json)", Pattern: "*.topology.json"},
-			{DisplayName: "所有文件 (*.*)", Pattern: "*.*"},
-		},
+		Filters:         fileFilters(),
 	})
 }
 

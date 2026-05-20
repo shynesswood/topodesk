@@ -6,6 +6,8 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
 //go:embed all:frontend/dist
@@ -18,15 +20,20 @@ func main() {
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "TopoDesk - 运维拓扑管理工具",
-		Width:  1340,
-		Height: 860,
-		MinWidth:  900,
-		MinHeight: 600,
+		Width:  1024,
+		Height: 768,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:        app.startup,
+		// 由前端按 prefers-color-scheme 调用 WindowSetBackgroundColour，避免与系统亮暗冲突
+		Mac: &mac.Options{
+			Appearance: mac.DefaultAppearance,
+		},
+		Windows: &windows.Options{
+			Theme: windows.SystemDefault,
+		},
+		OnStartup: app.startup,
 		DragAndDrop: &options.DragAndDrop{
 			EnableFileDrop: true,
 		},

@@ -14,8 +14,8 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
   wp.project = new models.ProjectInfo()
   wp.project.id = p.project.id
   wp.project.name = p.project.name
-  wp.project.createdAt = p.project.createdAt
-  wp.project.updatedAt = p.project.updatedAt
+  wp.project.createdAt = p.project.createdAt || new Date().toISOString()
+  wp.project.updatedAt = p.project.updatedAt || new Date().toISOString()
 
   wp.nodes = p.nodes.map((n) => {
     const wn = new models.Node()
@@ -61,10 +61,10 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
     wg.id = g.id
     wg.name = g.name
     wg.color = g.color
-    wg.nodeIds = g.nodeIds
+    wg.nodeIds = Array.isArray(g.nodeIds) ? g.nodeIds : []
     wg.position = new models.Position()
-    wg.position.x = g.position.x || 0
-    wg.position.y = g.position.y || 0
+    wg.position.x = g.position?.x ?? 0
+    wg.position.y = g.position?.y ?? 0
     wg.width = g.width || 300
     wg.height = g.height || 200
     return wg
@@ -84,8 +84,8 @@ function projectFromWails(wp: models.TopologyProject): TopologyProject {
     project: {
       id: wp.project.id,
       name: wp.project.name,
-      createdAt: wp.project.createdAt as string,
-      updatedAt: wp.project.updatedAt as string,
+      createdAt: String(wp.project.createdAt || ''),
+      updatedAt: String(wp.project.updatedAt || ''),
     },
     nodes: wp.nodes.map((n) => ({
       id: n.id,
