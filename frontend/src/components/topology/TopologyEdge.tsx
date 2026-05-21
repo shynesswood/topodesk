@@ -35,6 +35,17 @@ export const TopologyEdgeComponent = memo((props: EdgeProps) => {
 
   return (
     <>
+      {selected && (
+        <BaseEdge
+          id={`${id}-glow`}
+          path={edgePath}
+          style={{
+            stroke: '#58a6ff',
+            strokeWidth: 8,
+            opacity: 0.18,
+          }}
+        />
+      )}
       <BaseEdge
         id={id}
         path={edgePath}
@@ -51,11 +62,13 @@ export const TopologyEdgeComponent = memo((props: EdgeProps) => {
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               background: colors.nodeBg,
-              border: `1px solid ${EDGE_COLOR}`,
+              border: `1px solid ${selected ? '#58a6ff' : EDGE_COLOR}`,
               borderRadius: 4,
               padding: '2px 6px',
               fontSize: 10,
-              color: colors.textPrimary,
+              color: selected ? '#58a6ff' : colors.textPrimary,
+              fontWeight: selected ? 600 : 400,
+              boxShadow: selected ? '0 0 8px rgba(88, 166, 255, 0.35)' : undefined,
               pointerEvents: 'all',
             }}
           >

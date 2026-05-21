@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useEffect } from 'react'
 import {
   ReactFlow,
   Background,
@@ -9,8 +9,6 @@ import {
   Connection,
   NodeChange,
   EdgeChange,
-  applyNodeChanges,
-  applyEdgeChanges,
   SelectionMode,
   type OnConnect,
   type OnNodeDrag,
@@ -64,16 +62,17 @@ export function CanvasArea() {
   const groups = useTopologyStore((s) => s.groups)
   const edgesList = useTopologyStore((s) => s.edges)
   const selectedNodeIds = useTopologyStore((s) => s.selectedNodeIds)
+  const selectedEdgeIds = useTopologyStore((s) => s.selectedEdgeIds)
   const viewport = useTopologyStore((s) => s.viewport)
   const setNodes = useTopologyStore((s) => s.setNodes)
   const setEdges = useTopologyStore((s) => s.setEdges)
   const addEdge = useTopologyStore((s) => s.addEdge)
-  const removeNodes = useTopologyStore((s) => s.removeNodes)
-  const removeEdges = useTopologyStore((s) => s.removeEdges)
   const moveNode = useTopologyStore((s) => s.moveNode)
   const moveGroupPosition = useTopologyStore((s) => s.moveGroupPosition)
   const addNodesToGroup = useTopologyStore((s) => s.addNodesToGroup)
   const removeNodesFromGroup = useTopologyStore((s) => s.removeNodesFromGroup)
+  const setSelectedNodeIds = useTopologyStore((s) => s.setSelectedNodeIds)
+  const setSelectedEdgeIds = useTopologyStore((s) => s.setSelectedEdgeIds)
 
   const openNodePanel = useUIStore((s) => s.openNodePanel)
   const openEdgePanel = useUIStore((s) => s.openEdgePanel)
@@ -82,15 +81,17 @@ export function CanvasArea() {
 
   const rfNodes: Node[] = useMemo(() => buildAllRfNodes(nodes, groups, selectedNodeIds), [nodes, groups, selectedNodeIds])
   const rfEdges: Edge[] = useMemo(() => {
+    const selectedSet = new Set(selectedEdgeIds)
     return edgesList.map((e) => ({
       id: e.id,
       source: e.source,
       target: e.target,
       label: e.label,
       type: 'topology-edge',
+      selected: selectedSet.has(e.id),
       data: { edgeData: e },
     })) as Edge[]
-  }, [edgesList])
+  }, [edgesList, selectedEdgeIds])
 
   const isGroupNode = useCallback((id: string) => {
     return groups.some((g) => g.id === id)
@@ -102,14 +103,10 @@ export function CanvasArea() {
     const currentGroups = store.groups
 
     const positionUpdates = new Map<string, { x: number; y: number }>()
-    const removeIds = new Set<string>()
 
     changes.forEach((ch) => {
       if (ch.type === 'position' && ch.position) {
         positionUpdates.set(ch.id, ch.position)
-      }
-      if (ch.type === 'remove') {
-        removeIds.add(ch.id)
       }
       if (ch.type === 'select') {
         if (ch.selected) {
@@ -119,22 +116,6 @@ export function CanvasArea() {
         }
       }
     })
-
-    if (removeIds.size > 0) {
-      const groupRemoveIds = new Set<string>()
-      removeIds.forEach((id) => {
-        if (currentGroups.some((g) => g.id === id)) {
-          groupRemoveIds.add(id)
-          removeIds.delete(id)
-        }
-      })
-      if (groupRemoveIds.size > 0) {
-        groupRemoveIds.forEach((gid) => store.removeGroup(gid))
-      }
-      if (removeIds.size > 0) {
-        store.removeNodes([...removeIds])
-      }
-    }
 
     if (positionUpdates.size > 0) {
       const groupDeltas: { groupId: string; dx: number; dy: number }[] = []
@@ -172,26 +153,8 @@ export function CanvasArea() {
     }
   }, [moveGroupPosition, setNodes])
 
-  const onEdgesChange = useCallback((changes: EdgeChange<Edge>[]) => {
-    const store = useTopologyStore.getState()
-    const currentEdges = store.edges
-    const currentRfEdges = currentEdges.map((e) => ({
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      label: e.label,
-      type: 'topology-edge',
-      data: { edgeData: e },
-    }))
-    applyEdgeChanges(changes, currentRfEdges)
-
-    const removeIds = new Set<string>()
-    changes.forEach((ch) => {
-      if (ch.type === 'remove') removeIds.add(ch.id)
-    })
-    if (removeIds.size > 0) {
-      store.removeEdges([...removeIds])
-    }
+  const onEdgesChange = useCallback((_changes: EdgeChange<Edge>[]) => {
+    // Edge remove is handled by the Delete key listener
   }, [])
 
   const onConnect: OnConnect = useCallback((connection: Connection) => {
@@ -204,23 +167,25 @@ export function CanvasArea() {
   }, [addEdge])
 
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
+    setSelectedEdgeIds([])
     if (isGroupNode(node.id)) {
       openGroupPanel(node.id)
       return
     }
     openNodePanel(node.id)
-  }, [openNodePanel, openGroupPanel, isGroupNode])
+  }, [openNodePanel, openGroupPanel, isGroupNode, setSelectedEdgeIds])
 
   const onEdgeClick: EdgeMouseHandler = useCallback((_event, edge) => {
+    setSelectedNodeIds([])
+    setSelectedEdgeIds([edge.id])
     openEdgePanel(edge.id)
-  }, [openEdgePanel])
+  }, [openEdgePanel, setSelectedNodeIds, setSelectedEdgeIds])
 
   const onPaneClick = useCallback(() => {
+    setSelectedNodeIds([])
+    setSelectedEdgeIds([])
     closePanel()
-  }, [closePanel])
-
-  const setSelectedNodeIds = useTopologyStore((s) => s.setSelectedNodeIds)
-  const setSelectedEdgeIds = useTopologyStore((s) => s.setSelectedEdgeIds)
+  }, [closePanel, setSelectedNodeIds, setSelectedEdgeIds])
 
   const onSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedRfEdges }: { nodes: Node[]; edges: Edge[] }) => {
     setSelectedNodeIds(selectedNodes.map((n) => n.id))
@@ -268,6 +233,37 @@ export function CanvasArea() {
     for (const gid of groupsToLeave) removeNodesFromGroup(gid, [node.id])
   }, [moveNode, moveGroupPosition, isGroupNode, addNodesToGroup, removeNodesFromGroup])
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return
+
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+
+      const store = useTopologyStore.getState()
+      const { selectedNodeIds, selectedEdgeIds, removeNodes, removeEdges, removeGroup, groups } = store
+
+      if (selectedNodeIds.length > 0) {
+        const groupIds = selectedNodeIds.filter((id) => groups.some((g) => g.id === id))
+        const nodeIds = selectedNodeIds.filter((id) => !groups.some((g) => g.id === id))
+
+        groupIds.forEach((gid) => removeGroup(gid))
+        if (nodeIds.length > 0) removeNodes(nodeIds)
+
+        useUIStore.getState().closePanel()
+        return
+      }
+
+      if (selectedEdgeIds.length > 0) {
+        removeEdges(selectedEdgeIds)
+        useUIStore.getState().closePanel()
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   return (
     <div style={{ width: '100%', height: '100%' }}>
       <ReactFlow
@@ -287,7 +283,6 @@ export function CanvasArea() {
         snapToGrid
         snapGrid={[15, 15]}
         selectionMode={SelectionMode.Partial}
-        deleteKeyCode={['Delete', 'Backspace']}
         multiSelectionKeyCode="Shift"
         fitView
         style={{ background: colors.bgCanvas }}
