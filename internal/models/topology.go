@@ -24,7 +24,6 @@ type Node struct {
 	Name        string         `json:"name"`
 	IP          string         `json:"ip,omitempty"`
 	Description string         `json:"description,omitempty"`
-	Tags        []string       `json:"tags,omitempty"`
 	Position    Position       `json:"position"`
 	SSH         *SSHInfo       `json:"ssh,omitempty"`
 	Software    []SoftwareInfo `json:"software,omitempty"`

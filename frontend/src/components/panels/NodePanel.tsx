@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Form, Input, InputNumber, Button, Collapse, message, Select, Space } from 'antd'
+import { Form, Input, InputNumber, Button, Collapse, message, Select } from 'antd'
 import { DeleteOutlined, LinkOutlined, PlusOutlined } from '@ant-design/icons'
 import { useTopologyStore } from '../../stores/topologyStore'
 import { useUIStore } from '../../stores/uiStore'
@@ -146,9 +146,6 @@ export function NodePanel() {
                 </Form.Item>
                 <Form.Item label="简介" style={{ marginBottom: 8 }}>
                   <TextArea rows={2} value={currentNode.description || ''} onChange={(e) => handleChange('description', e.target.value)} />
-                </Form.Item>
-                <Form.Item label="标签" style={{ marginBottom: 8 }}>
-                  <Select mode="tags" value={currentNode.tags || []} onChange={(v) => handleChange('tags', v)} placeholder="添加标签" size="small" />
                 </Form.Item>
               </Form>
             ),

@@ -15,7 +15,6 @@ export interface TopologyNode {
   name: string
   ip?: string
   description?: string
-  tags?: string[]
 
   position: {
     x: number

@@ -113,7 +113,6 @@ export namespace models {
 	    name: string;
 	    ip?: string;
 	    description?: string;
-	    tags?: string[];
 	    position: Position;
 	    ssh?: SSHInfo;
 	    software?: SoftwareInfo[];
@@ -128,7 +127,6 @@ export namespace models {
 	        this.name = source["name"];
 	        this.ip = source["ip"];
 	        this.description = source["description"];
-	        this.tags = source["tags"];
 	        this.position = this.convertValues(source["position"], Position);
 	        this.ssh = this.convertValues(source["ssh"], SSHInfo);
 	        this.software = this.convertValues(source["software"], SoftwareInfo);

@@ -39,7 +39,6 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
       ws.props = s.props || {}
       return ws
     })
-    wn.tags = n.tags || []
     return wn
   })
 
@@ -89,7 +88,6 @@ function projectFromWails(wp: models.TopologyProject): TopologyProject {
       ip: n.ip,
       description: n.description,
       position: { x: n.position.x, y: n.position.y },
-      tags: n.tags || [],
       ssh: n.ssh ? {
         username: n.ssh.username,
         password: n.ssh.password,

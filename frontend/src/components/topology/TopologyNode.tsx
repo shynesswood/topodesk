@@ -16,7 +16,9 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
   const [hovered, setHovered] = useState(false)
   const isSelected = !!selected
   const showHandles = isSelected || hovered
-  const tags = (nodeData.nodeData?.tags as string[]) || []
+  const softwareNames: string[] = Array.isArray(nodeData.nodeData?.software)
+    ? (nodeData.nodeData.software as { name: string }[]).map((s) => s.name).filter(Boolean)
+    : []
 
   return (
     <div
@@ -48,9 +50,9 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
           <div style={{ color: colors.textSecondary, fontSize: 10, marginTop: 2 }}>
             {(nodeData.nodeData?.ip as string) || ''}
           </div>
-          {tags.length > 0 && (
+          {softwareNames.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginTop: 4 }}>
-              {tags.map((tag, i) => (
+              {softwareNames.map((name, i) => (
                 <span key={i} style={{
                   background: 'rgba(76, 154, 255, 0.15)',
                   color: '#58a6ff',
@@ -59,7 +61,7 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
                   borderRadius: 3,
                   lineHeight: '16px',
                 }}>
-                  {tag}
+                  {name}
                 </span>
               ))}
             </div>
