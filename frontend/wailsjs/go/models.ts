@@ -78,12 +78,7 @@ export namespace models {
 	}
 	export class SoftwareInfo {
 	    name: string;
-	    installPath?: string;
-	    dataPath?: string;
-	    logPath?: string;
-	    startCommand?: string;
-	    stopCommand?: string;
-	    restartCommand?: string;
+	    props?: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new SoftwareInfo(source);
@@ -92,12 +87,7 @@ export namespace models {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
-	        this.installPath = source["installPath"];
-	        this.dataPath = source["dataPath"];
-	        this.logPath = source["logPath"];
-	        this.startCommand = source["startCommand"];
-	        this.stopCommand = source["stopCommand"];
-	        this.restartCommand = source["restartCommand"];
+	        this.props = source["props"];
 	    }
 	}
 	export class SSHInfo {
@@ -123,6 +113,7 @@ export namespace models {
 	    name: string;
 	    ip?: string;
 	    description?: string;
+	    tags?: string[];
 	    position: Position;
 	    ssh?: SSHInfo;
 	    software?: SoftwareInfo[];
@@ -137,6 +128,7 @@ export namespace models {
 	        this.name = source["name"];
 	        this.ip = source["ip"];
 	        this.description = source["description"];
+	        this.tags = source["tags"];
 	        this.position = this.convertValues(source["position"], Position);
 	        this.ssh = this.convertValues(source["ssh"], SSHInfo);
 	        this.software = this.convertValues(source["software"], SoftwareInfo);

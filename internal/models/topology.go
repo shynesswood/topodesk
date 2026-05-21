@@ -3,13 +3,8 @@ package models
 import "time"
 
 type SoftwareInfo struct {
-	Name           string `json:"name"`
-	InstallPath    string `json:"installPath,omitempty"`
-	DataPath       string `json:"dataPath,omitempty"`
-	LogPath        string `json:"logPath,omitempty"`
-	StartCommand   string `json:"startCommand,omitempty"`
-	StopCommand    string `json:"stopCommand,omitempty"`
-	RestartCommand string `json:"restartCommand,omitempty"`
+	Name  string            `json:"name"`
+	Props map[string]string `json:"props,omitempty"`
 }
 
 type SSHInfo struct {
@@ -29,6 +24,7 @@ type Node struct {
 	Name        string         `json:"name"`
 	IP          string         `json:"ip,omitempty"`
 	Description string         `json:"description,omitempty"`
+	Tags        []string       `json:"tags,omitempty"`
 	Position    Position       `json:"position"`
 	SSH         *SSHInfo       `json:"ssh,omitempty"`
 	Software    []SoftwareInfo `json:"software,omitempty"`

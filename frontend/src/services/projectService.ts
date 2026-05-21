@@ -36,14 +36,10 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
     wn.software = (n.software || []).map((s) => {
       const ws = new models.SoftwareInfo()
       ws.name = s.name
-      ws.installPath = s.installPath
-      ws.dataPath = s.dataPath
-      ws.logPath = s.logPath
-      ws.startCommand = s.startCommand
-      ws.stopCommand = s.stopCommand
-      ws.restartCommand = s.restartCommand
+      ws.props = s.props || {}
       return ws
     })
+    wn.tags = n.tags || []
     return wn
   })
 
@@ -93,6 +89,7 @@ function projectFromWails(wp: models.TopologyProject): TopologyProject {
       ip: n.ip,
       description: n.description,
       position: { x: n.position.x, y: n.position.y },
+      tags: n.tags || [],
       ssh: n.ssh ? {
         username: n.ssh.username,
         password: n.ssh.password,
@@ -101,12 +98,7 @@ function projectFromWails(wp: models.TopologyProject): TopologyProject {
       } : undefined,
       software: n.software?.map((s) => ({
         name: s.name,
-        installPath: s.installPath,
-        dataPath: s.dataPath,
-        logPath: s.logPath,
-        startCommand: s.startCommand,
-        stopCommand: s.stopCommand,
-        restartCommand: s.restartCommand,
+        props: s.props || {},
       })),
     })),
     edges: wp.edges.map((e) => ({

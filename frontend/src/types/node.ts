@@ -1,11 +1,6 @@
 export interface SoftwareInfo {
   name: string
-  installPath?: string
-  dataPath?: string
-  logPath?: string
-  startCommand?: string
-  stopCommand?: string
-  restartCommand?: string
+  props?: Record<string, string>
 }
 
 export interface SSHInfo {
@@ -20,6 +15,7 @@ export interface TopologyNode {
   name: string
   ip?: string
   description?: string
+  tags?: string[]
 
   position: {
     x: number
