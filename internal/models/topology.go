@@ -2,6 +2,13 @@ package models
 
 import "time"
 
+type OSType string
+
+const (
+	OSLinux   OSType = "linux"
+	OSWindows OSType = "windows"
+)
+
 type SoftwareInfo struct {
 	Name  string            `json:"name"`
 	Props map[string]string `json:"props,omitempty"`
@@ -12,6 +19,13 @@ type SSHInfo struct {
 	Password   string `json:"password,omitempty"`
 	PrivateKey string `json:"privateKey,omitempty"`
 	Port       int    `json:"port,omitempty"`
+}
+
+type RDPInfo struct {
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+	Domain   string `json:"domain,omitempty"`
+	Port     int    `json:"port,omitempty"`
 }
 
 type Position struct {
@@ -25,7 +39,9 @@ type Node struct {
 	IP          string         `json:"ip,omitempty"`
 	Description string         `json:"description,omitempty"`
 	Position    Position       `json:"position"`
+	OS          OSType         `json:"os,omitempty"`
 	SSH         *SSHInfo       `json:"ssh,omitempty"`
+	RDP         *RDPInfo       `json:"rdp,omitempty"`
 	Software    []SoftwareInfo `json:"software,omitempty"`
 }
 

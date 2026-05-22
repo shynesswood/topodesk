@@ -1,3 +1,5 @@
+export type OSType = 'linux' | 'windows'
+
 export interface SoftwareInfo {
   name: string
   props?: Record<string, string>
@@ -10,11 +12,19 @@ export interface SSHInfo {
   port?: number
 }
 
+export interface RDPInfo {
+  username?: string
+  password?: string
+  domain?: string
+  port?: number
+}
+
 export interface TopologyNode {
   id: string
   name: string
   ip?: string
   description?: string
+  os?: OSType
 
   position: {
     x: number
@@ -22,5 +32,6 @@ export interface TopologyNode {
   }
 
   ssh?: SSHInfo
+  rdp?: RDPInfo
   software?: SoftwareInfo[]
 }

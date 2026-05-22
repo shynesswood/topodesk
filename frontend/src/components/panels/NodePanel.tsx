@@ -3,8 +3,9 @@ import { Form, Input, InputNumber, Button, Collapse, message, Select } from 'ant
 import { DeleteOutlined, LinkOutlined, PlusOutlined } from '@ant-design/icons'
 import { useTopologyStore } from '../../stores/topologyStore'
 import { useUIStore } from '../../stores/uiStore'
-import { testConnection } from '../../services/sshService'
-import type { SoftwareInfo } from '../../types'
+import { testConnection as testSSHConnection } from '../../services/sshService'
+import { testConnection as testRDPConnection } from '../../services/rdpService'
+import type { SoftwareInfo, OSType } from '../../types'
 
 const { TextArea } = Input
 
@@ -30,12 +31,14 @@ export function NodePanel() {
   if (!node) return null
 
   const currentNode = node
+  const osType: OSType = node.os || 'linux'
   const sshInfo = node.ssh
+  const rdpInfo = node.rdp
 
   const collapseStyle: React.CSSProperties = { fontSize: 12 }
 
-  const [testingSSH, setTestingSSH] = useState(false)
-  const [sshResult, setSshResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   function handleChange(field: string, value: unknown) {
     updateNode(currentNode.id, { [field]: value })
@@ -47,33 +50,56 @@ export function NodePanel() {
     })
   }
 
+  function handleRDPChange(field: string, value: unknown) {
+    updateNode(currentNode.id, {
+      rdp: { ...rdpInfo, [field]: value },
+    })
+  }
+
   function handleDelete() {
     removeNode(currentNode.id)
     closePanel()
   }
 
-  async function handleTestSSH() {
+  async function handleTestConnection() {
     if (!currentNode.ip) {
       message.warning('请先设置 IP 地址')
       return
     }
-    if (!sshInfo?.username) {
-      message.warning('请先设置 SSH 用户名')
-      return
-    }
-    setTestingSSH(true)
+
+    setTesting(true)
     try {
-      const result = await testConnection(
-        currentNode.ip, sshInfo.port || 22, sshInfo.username || '',
-        sshInfo.password || '', sshInfo.privateKey || ''
-      )
-      setSshResult(result)
-      if (result.success) message.success('SSH 连接成功')
-      else message.error(result.message)
+      let result: { success: boolean; message: string }
+      if (osType === 'windows') {
+        if (!rdpInfo?.username) {
+          message.warning('请先设置 RDP 用户名')
+          setTesting(false)
+          return
+        }
+        result = await testRDPConnection(
+          currentNode.ip, rdpInfo.port || 3389, rdpInfo.username || '',
+          rdpInfo.password || '', rdpInfo.domain || ''
+        )
+        if (result.success) message.success('RDP 连接成功')
+        else message.error(result.message)
+      } else {
+        if (!sshInfo?.username) {
+          message.warning('请先设置 SSH 用户名')
+          setTesting(false)
+          return
+        }
+        result = await testSSHConnection(
+          currentNode.ip, sshInfo.port || 22, sshInfo.username || '',
+          sshInfo.password || '', sshInfo.privateKey || ''
+        )
+        if (result.success) message.success('SSH 连接成功')
+        else message.error(result.message)
+      }
+      setTestResult(result)
     } catch {
-      message.error('SSH 连接测试失败')
+      message.error(osType === 'windows' ? 'RDP 连接测试失败' : 'SSH 连接测试失败')
     } finally {
-      setTestingSSH(false)
+      setTesting(false)
     }
   }
 
@@ -120,6 +146,9 @@ export function NodePanel() {
     handleChange('software', list)
   }
 
+  const connectionLabel = osType === 'windows' ? 'RDP 信息' : 'SSH 信息'
+  const testButtonLabel = osType === 'windows' ? '测试 RDP 连接' : '测试 SSH 连接'
+
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%', fontSize: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -141,6 +170,16 @@ export function NodePanel() {
                 <Form.Item label="服务器名称" style={{ marginBottom: 8 }}>
                   <Input value={currentNode.name} onChange={(e) => handleChange('name', e.target.value)} />
                 </Form.Item>
+                <Form.Item label="操作系统" style={{ marginBottom: 8 }}>
+                  <Select
+                    value={osType}
+                    onChange={(v: OSType) => handleChange('os', v)}
+                    options={[
+                      { label: 'Linux', value: 'linux' },
+                      { label: 'Windows', value: 'windows' },
+                    ]}
+                  />
+                </Form.Item>
                 <Form.Item label="IP 地址" style={{ marginBottom: 8 }}>
                   <Input value={currentNode.ip || ''} onChange={(e) => handleChange('ip', e.target.value)} />
                 </Form.Item>
@@ -151,30 +190,47 @@ export function NodePanel() {
             ),
           },
           {
-            key: 'ssh',
-            label: 'SSH 信息',
+            key: 'connection',
+            label: connectionLabel,
             children: (
               <div>
-                <Form layout="vertical" size="small">
-                  <Form.Item label="用户名" style={{ marginBottom: 8 }}>
-                    <Input value={sshInfo?.username || ''} onChange={(e) => handleSSHChange('username', e.target.value)} />
-                  </Form.Item>
-                  <Form.Item label="密码" style={{ marginBottom: 8 }}>
-                    <Input.Password value={sshInfo?.password || ''} onChange={(e) => handleSSHChange('password', e.target.value)} />
-                  </Form.Item>
-                  <Form.Item label="私钥" style={{ marginBottom: 8 }}>
-                    <TextArea rows={3} value={sshInfo?.privateKey || ''} onChange={(e) => handleSSHChange('privateKey', e.target.value)} placeholder="-----BEGIN RSA PRIVATE KEY-----" />
-                  </Form.Item>
-                  <Form.Item label="SSH 端口" style={{ marginBottom: 8 }}>
-                    <InputNumber value={sshInfo?.port || 22} onChange={(v) => handleSSHChange('port', v)} style={{ width: '100%' }} />
-                  </Form.Item>
-                </Form>
-                <Button type="primary" size="small" icon={<LinkOutlined />} onClick={handleTestSSH} loading={testingSSH} block style={{ marginBottom: 8 }}>
-                  测试连接
+                {osType === 'windows' ? (
+                  <Form layout="vertical" size="small">
+                    <Form.Item label="用户名" style={{ marginBottom: 8 }}>
+                      <Input value={rdpInfo?.username || ''} onChange={(e) => handleRDPChange('username', e.target.value)} />
+                    </Form.Item>
+                    <Form.Item label="密码" style={{ marginBottom: 8 }}>
+                      <Input.Password value={rdpInfo?.password || ''} onChange={(e) => handleRDPChange('password', e.target.value)} />
+                    </Form.Item>
+                    <Form.Item label="域" style={{ marginBottom: 8 }}>
+                      <Input value={rdpInfo?.domain || ''} onChange={(e) => handleRDPChange('domain', e.target.value)} placeholder="可选" />
+                    </Form.Item>
+                    <Form.Item label="RDP 端口" style={{ marginBottom: 8 }}>
+                      <InputNumber value={rdpInfo?.port || 3389} onChange={(v) => handleRDPChange('port', v)} style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Form>
+                ) : (
+                  <Form layout="vertical" size="small">
+                    <Form.Item label="用户名" style={{ marginBottom: 8 }}>
+                      <Input value={sshInfo?.username || ''} onChange={(e) => handleSSHChange('username', e.target.value)} />
+                    </Form.Item>
+                    <Form.Item label="密码" style={{ marginBottom: 8 }}>
+                      <Input.Password value={sshInfo?.password || ''} onChange={(e) => handleSSHChange('password', e.target.value)} />
+                    </Form.Item>
+                    <Form.Item label="私钥" style={{ marginBottom: 8 }}>
+                      <TextArea rows={3} value={sshInfo?.privateKey || ''} onChange={(e) => handleSSHChange('privateKey', e.target.value)} placeholder="-----BEGIN RSA PRIVATE KEY-----" />
+                    </Form.Item>
+                    <Form.Item label="SSH 端口" style={{ marginBottom: 8 }}>
+                      <InputNumber value={sshInfo?.port || 22} onChange={(v) => handleSSHChange('port', v)} style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Form>
+                )}
+                <Button type="primary" size="small" icon={<LinkOutlined />} onClick={handleTestConnection} loading={testing} block style={{ marginBottom: 8 }}>
+                  {testButtonLabel}
                 </Button>
-                {sshResult && (
-                  <div style={{ padding: '6px 8px', marginBottom: 8, borderRadius: 4, background: sshResult.success ? 'rgba(82, 196, 26, 0.1)' : 'rgba(255, 77, 79, 0.1)', border: `1px solid ${sshResult.success ? '#52c41a' : '#ff4d4f'}`, fontSize: 11 }}>
-                    {sshResult.message}
+                {testResult && (
+                  <div style={{ padding: '6px 8px', marginBottom: 8, borderRadius: 4, background: testResult.success ? 'rgba(82, 196, 26, 0.1)' : 'rgba(255, 77, 79, 0.1)', border: `1px solid ${testResult.success ? '#52c41a' : '#ff4d4f'}`, fontSize: 11 }}>
+                    {testResult.message}
                   </div>
                 )}
               </div>

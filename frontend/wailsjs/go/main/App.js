@@ -22,6 +22,10 @@ export function OpenFileDialog() {
   return window['go']['main']['App']['OpenFileDialog']();
 }
 
+export function RDPTestConnection(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['RDPTestConnection'](arg1, arg2, arg3, arg4, arg5);
+}
+
 export function SSHTestConnection(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['SSHTestConnection'](arg1, arg2, arg3, arg4, arg5);
 }

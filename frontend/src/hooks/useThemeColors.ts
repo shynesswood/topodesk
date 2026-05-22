@@ -25,7 +25,7 @@ const colorMap: Record<ThemeMode, ThemeColors> = {
     nodeBg: '#161b22',
     nodeBorder: '#30363d',
     toolbarBg: '#0d1117',
-    sidebarBg: '#161b22',
+    sidebarBg: '#0d1117',
     panelBg: '#161b22',
   },
   light: {
@@ -38,7 +38,7 @@ const colorMap: Record<ThemeMode, ThemeColors> = {
     nodeBg: '#ffffff',
     nodeBorder: '#d9d9d9',
     toolbarBg: '#ffffff',
-    sidebarBg: '#fafafa',
+    sidebarBg: '#f5f5f5',
     panelBg: '#ffffff',
   },
 }

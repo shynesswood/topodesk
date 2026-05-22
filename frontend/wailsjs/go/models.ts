@@ -90,6 +90,24 @@ export namespace models {
 	        this.props = source["props"];
 	    }
 	}
+	export class RDPInfo {
+	    username?: string;
+	    password?: string;
+	    domain?: string;
+	    port?: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new RDPInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.username = source["username"];
+	        this.password = source["password"];
+	        this.domain = source["domain"];
+	        this.port = source["port"];
+	    }
+	}
 	export class SSHInfo {
 	    username?: string;
 	    password?: string;
@@ -114,7 +132,9 @@ export namespace models {
 	    ip?: string;
 	    description?: string;
 	    position: Position;
+	    os?: string;
 	    ssh?: SSHInfo;
+	    rdp?: RDPInfo;
 	    software?: SoftwareInfo[];
 	
 	    static createFrom(source: any = {}) {
@@ -128,7 +148,9 @@ export namespace models {
 	        this.ip = source["ip"];
 	        this.description = source["description"];
 	        this.position = this.convertValues(source["position"], Position);
+	        this.os = source["os"];
 	        this.ssh = this.convertValues(source["ssh"], SSHInfo);
+	        this.rdp = this.convertValues(source["rdp"], RDPInfo);
 	        this.software = this.convertValues(source["software"], SoftwareInfo);
 	    }
 	
@@ -191,6 +213,7 @@ export namespace models {
 	}
 	
 	
+	
 	export class Viewport {
 	    x: number;
 	    y: number;
@@ -246,6 +269,25 @@ export namespace models {
 		    }
 		    return a;
 		}
+	}
+
+}
+
+export namespace rdp {
+	
+	export class RDPResult {
+	    success: boolean;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RDPResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.message = source["message"];
+	    }
 	}
 
 }

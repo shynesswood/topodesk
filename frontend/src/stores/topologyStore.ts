@@ -79,7 +79,7 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
 
   addNode: (name, position) => {
     const id = generateNodeId()
-    const node: TopologyNode = { id, name, position: { x: position.x, y: position.y } }
+    const node: TopologyNode = { id, name, os: 'linux', position: { x: position.x, y: position.y } }
     set((s) => ({ nodes: [...s.nodes, node] }))
     markDirty()
   },

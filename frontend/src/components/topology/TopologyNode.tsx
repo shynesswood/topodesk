@@ -43,9 +43,25 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
     : []
 
   const softwareNames: string[] = softwareList.map((s) => s.name).filter(Boolean)
-  const showHoverPopover = hovered && !isSelected && softwareList.length > 0 && selectedSwIdx === null
+  const showHoverPopover = hovered && !isSelected && selectedSwIdx === null
 
   const ip = (nodeData.nodeData?.ip as string) || ''
+
+  const description = (nodeData.nodeData?.description as string) || ''
+
+  const osType = (nodeData.nodeData?.os as string) || 'linux'
+  const osBadge = osType === 'windows'
+    ? { label: 'Win', bg: 'rgba(0, 120, 212, 0.15)', color: '#0078d4' }
+    : { label: 'Linux', bg: 'rgba(255, 165, 0, 0.15)', color: '#ffa500' }
+
+  const ServerIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={colors.textPrimary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+      <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+      <line x1="6" y1="6" x2="6.01" y2="6" />
+      <line x1="6" y1="18" x2="6.01" y2="18" />
+    </svg>
+  )
 
   const computePos = useCallback(() => {
     if (!nodeRef.current) return null
@@ -121,16 +137,28 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
           outline: isSelected ? '2px solid rgba(88, 166, 255, 0.35)' : '1px solid transparent',
           outlineOffset: 2,
         }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
       >
         <Handle id="top" type="source" position={Position.Top} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
         <Handle id="left" type="source" position={Position.Left} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 18 }}>{'\u{1F5A5}'}</span>
-          <div>
-            <div style={{ color: colors.textPrimary, fontSize: 13, fontWeight: 600 }}>
-              {nodeData.label}
+          <span
+            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+          >
+            <ServerIcon />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: colors.textPrimary, fontSize: 13, fontWeight: 600 }}>
+                {nodeData.label}
+              </span>
+              <span style={{
+                fontSize: 9, padding: '1px 5px', borderRadius: 3, lineHeight: '14px',
+                background: osBadge.bg, color: osBadge.color, fontWeight: 600,
+              }}>
+                {osBadge.label}
+              </span>
             </div>
             <div style={{ color: colors.textSecondary, fontSize: 10, marginTop: 2 }}>
               {ip}
@@ -171,10 +199,8 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
               position: 'fixed',
               left: hoverPos.left,
               top: hoverPos.top,
-              minWidth: 220,
-              maxWidth: 320,
-              maxHeight: 400,
-              overflow: 'auto',
+              minWidth: 200,
+              maxWidth: 300,
               background: colors.nodeBg,
               border: '1px solid rgba(76, 154, 255, 0.3)',
               borderRadius: 8,
@@ -185,47 +211,22 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
               pointerEvents: 'none',
             }}
           >
-            <div style={{ color: colors.textPrimary, fontWeight: 600, marginBottom: 4, fontSize: 12 }}>
+            <div style={{ color: colors.textPrimary, fontWeight: 600, marginBottom: 6, fontSize: 12 }}>
               {nodeData.label}
             </div>
+            <div style={{ color: colors.textSecondary, marginBottom: 4, fontSize: 10 }}>
+              {osType === 'windows' ? 'Windows' : 'Linux'}
+            </div>
             {ip && (
-              <div style={{ color: colors.textSecondary, marginBottom: 8, fontSize: 10 }}>
-                {ip}
+              <div style={{ color: colors.textSecondary, marginBottom: 4, fontSize: 10 }}>
+                IP: {ip}
               </div>
             )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {softwareList.map((sw, i) => {
-                const swProps = sw.props || {}
-                const displayItems = DISPLAY_PROPS.filter(({ key }) => swProps[key])
-                if (displayItems.length === 0) {
-                  return (
-                    <div key={i}>
-                      <div style={{ color: '#58a6ff', fontWeight: 600, fontSize: 11, marginBottom: 2 }}>
-                        {sw.name}
-                      </div>
-                      <div style={{ color: colors.textSecondary, fontSize: 10, fontStyle: 'italic' }}>
-                        暂无详细信息
-                      </div>
-                    </div>
-                  )
-                }
-                return (
-                  <div key={i}>
-                    <div style={{ color: '#58a6ff', fontWeight: 600, fontSize: 11, marginBottom: 2 }}>
-                      {sw.name}
-                    </div>
-                    {displayItems.map(({ key, label }) => (
-                      <div key={key} style={{ display: 'flex', gap: 6, fontSize: 10, lineHeight: '18px', marginLeft: 4 }}>
-                        <span style={{ color: colors.textSecondary, minWidth: 32, flexShrink: 0 }}>{label}</span>
-                        <span style={{ color: colors.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {swProps[key]}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )
-              })}
-            </div>
+            {description && (
+              <div style={{ color: colors.textSecondary, fontSize: 10, lineHeight: '16px' }}>
+                {description}
+              </div>
+            )}
           </div>,
           document.body,
         )}

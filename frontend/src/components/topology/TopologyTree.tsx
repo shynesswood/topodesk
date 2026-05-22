@@ -78,14 +78,35 @@ export function TopologyTree() {
       }}>
         拓扑结构 ({nodes.length} 节点, {groups.length} 分组)
       </div>
+      <style>{`
+        .topology-tree .ant-tree-node-content-wrapper:hover {
+          background: ${colors.nodeBg} !important;
+        }
+        .topology-tree .ant-tree-node-selected .ant-tree-node-content-wrapper {
+          background: ${colors.nodeBg} !important;
+        }
+        .topology-tree .ant-tree-treenode {
+          padding-left: 2px !important;
+        }
+        .topology-tree .ant-tree-switcher {
+          width: 16px !important;
+        }
+        .topology-tree .ant-tree-node-content-wrapper {
+          padding-left: 2px !important;
+        }
+        .topology-tree .ant-tree-indent-unit {
+          width: 12px !important;
+        }
+      `}</style>
       <Tree
+        className="topology-tree"
         treeData={treeData}
         onSelect={handleSelect}
         showIcon
         selectedKeys={[]}
         blockNode
         style={{
-          background: 'transparent',
+          background: colors.sidebarBg,
           color: colors.textPrimary,
           fontSize: 11,
         }}

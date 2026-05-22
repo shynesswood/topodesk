@@ -6,19 +6,21 @@ import (
 
 	"topodesk/internal/models"
 	"topodesk/internal/project"
+	"topodesk/internal/rdp"
 	"topodesk/internal/ssh"
 	"topodesk/internal/storage"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-const APP_VERSION = "1.0.0"
+const APP_VERSION = "0.1.0"
 
 type App struct {
 	ctx            context.Context
 	projectService *project.ProjectService
 	fileManager    *storage.FileManager
 	sshService     *ssh.SSHService
+	rdpService     *rdp.RDPService
 }
 
 func NewApp() *App {
@@ -26,6 +28,7 @@ func NewApp() *App {
 		projectService: project.NewProjectService(),
 		fileManager:    storage.NewFileManager(),
 		sshService:     ssh.NewSSHService(),
+		rdpService:     rdp.NewRDPService(),
 	}
 }
 
@@ -78,6 +81,10 @@ func (a *App) FileExists(path string) bool {
 
 func (a *App) SSHTestConnection(host string, port int, username, password, privateKey string) ssh.SSHResult {
 	return a.sshService.TestConnection(host, port, username, password, privateKey)
+}
+
+func (a *App) RDPTestConnection(host string, port int, username, password, domain string) rdp.RDPResult {
+	return a.rdpService.TestConnection(host, port, username, password, domain)
 }
 
 func (a *App) GetVersion() string {
