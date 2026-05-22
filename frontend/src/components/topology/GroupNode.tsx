@@ -99,10 +99,10 @@ export const GroupNodeComponent = memo((props: NodeProps) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Handle type="target" position={Position.Top} style={{ background: '#58a6ff', opacity: showResizeHandles ? 1 : 0 }} />
-      <Handle type="source" position={Position.Bottom} style={{ background: '#58a6ff', opacity: showResizeHandles ? 1 : 0 }} />
-      <Handle type="source" position={Position.Left} style={{ background: '#58a6ff', opacity: showResizeHandles ? 1 : 0 }} />
-      <Handle type="target" position={Position.Right} style={{ background: '#58a6ff', opacity: showResizeHandles ? 1 : 0 }} />
+      <Handle id="top" type="source" position={Position.Top} style={{ background: '#58a6ff', opacity: showResizeHandles ? 1 : 0 }} />
+      <Handle id="bottom" type="source" position={Position.Bottom} style={{ background: '#58a6ff', opacity: showResizeHandles ? 1 : 0 }} />
+      <Handle id="left" type="source" position={Position.Left} style={{ background: '#58a6ff', opacity: showResizeHandles ? 1 : 0 }} />
+      <Handle id="right" type="source" position={Position.Right} style={{ background: '#58a6ff', opacity: showResizeHandles ? 1 : 0 }} />
 
       <div style={{
         position: 'absolute', top: -11, left: 12,

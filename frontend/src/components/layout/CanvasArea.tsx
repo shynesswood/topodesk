@@ -10,6 +10,7 @@ import {
   NodeChange,
   EdgeChange,
   SelectionMode,
+  ConnectionMode,
   type OnConnect,
   type OnNodeDrag,
   type NodeMouseHandler,
@@ -86,6 +87,8 @@ export function CanvasArea() {
       id: e.id,
       source: e.source,
       target: e.target,
+      sourceHandle: e.sourceHandle ?? null,
+      targetHandle: e.targetHandle ?? null,
       label: e.label,
       type: 'topology-edge',
       selected: selectedSet.has(e.id),
@@ -163,6 +166,8 @@ export function CanvasArea() {
       id: '',
       source: connection.source,
       target: connection.target,
+      sourceHandle: connection.sourceHandle ?? null,
+      targetHandle: connection.targetHandle ?? null,
     })
   }, [addEdge])
 
@@ -284,6 +289,7 @@ export function CanvasArea() {
         snapGrid={[15, 15]}
         selectionMode={SelectionMode.Partial}
         multiSelectionKeyCode="Shift"
+        connectionMode={ConnectionMode.Loose}
         fitView
         style={{ background: colors.bgCanvas }}
       >

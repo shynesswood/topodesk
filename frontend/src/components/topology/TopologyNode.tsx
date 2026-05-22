@@ -124,8 +124,8 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        <Handle type="target" position={Position.Top} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
-        <Handle type="source" position={Position.Left} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
+        <Handle id="top" type="source" position={Position.Top} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
+        <Handle id="left" type="source" position={Position.Left} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 18 }}>{'\u{1F5A5}'}</span>
           <div>
@@ -159,8 +159,8 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
             )}
           </div>
         </div>
-        <Handle type="source" position={Position.Bottom} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
-        <Handle type="target" position={Position.Right} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
+        <Handle id="bottom" type="source" position={Position.Bottom} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
+        <Handle id="right" type="source" position={Position.Right} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
       </div>
 
       {showHoverPopover && hoverPos &&
