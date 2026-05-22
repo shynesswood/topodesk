@@ -12,6 +12,8 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+const APP_VERSION = "1.0.0"
+
 type App struct {
 	ctx            context.Context
 	projectService *project.ProjectService
@@ -76,4 +78,8 @@ func (a *App) FileExists(path string) bool {
 
 func (a *App) SSHTestConnection(host string, port int, username, password, privateKey string) ssh.SSHResult {
 	return a.sshService.TestConnection(host, port, username, password, privateKey)
+}
+
+func (a *App) GetVersion() string {
+	return APP_VERSION
 }

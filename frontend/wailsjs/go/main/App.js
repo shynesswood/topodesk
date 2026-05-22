@@ -6,6 +6,10 @@ export function FileExists(arg1) {
   return window['go']['main']['App']['FileExists'](arg1);
 }
 
+export function GetVersion() {
+  return window['go']['main']['App']['GetVersion']();
+}
+
 export function LoadProject(arg1) {
   return window['go']['main']['App']['LoadProject'](arg1);
 }

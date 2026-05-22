@@ -5,6 +5,8 @@ import {ssh} from '../models';
 
 export function FileExists(arg1:string):Promise<boolean>;
 
+export function GetVersion():Promise<string>;
+
 export function LoadProject(arg1:string):Promise<models.TopologyProject>;
 
 export function NewProject(arg1:string):Promise<models.TopologyProject>;

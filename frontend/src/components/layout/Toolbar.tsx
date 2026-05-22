@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button, Space, Tooltip, Input, message, Dropdown } from 'antd'
 import {
   SaveOutlined,
@@ -24,6 +24,7 @@ import {
   SaveFileDialog,
   BackupProject,
 } from '../../services/projectService'
+import { GetVersion } from '../../../wailsjs/go/main/App'
 
 export function Toolbar() {
   const { currentProject, isDirty, setProject, markSaved, setFilePath, createBlank } = useProjectStore()
@@ -35,6 +36,11 @@ export function Toolbar() {
   const [editingName, setEditingName] = useState(false)
   const [tempName, setTempName] = useState('')
   const [saving, setSaving] = useState(false)
+  const [appVersion, setAppVersion] = useState('')
+
+  useEffect(() => {
+    GetVersion().then(setAppVersion)
+  }, [])
 
   async function handleOpenRecent(path: string) {
     try {
@@ -269,6 +275,9 @@ export function Toolbar() {
       )}
 
       <div style={{ flex: 1 }} />
+      {appVersion && (
+        <span style={{ color: colors.textSecondary, fontSize: 10, marginRight: 4 }}>v{appVersion}</span>
+      )}
       <Tooltip title={theme === 'dark' ? '切换明亮模式' : '切换暗黑模式'}>
         <Button
           type="text"
