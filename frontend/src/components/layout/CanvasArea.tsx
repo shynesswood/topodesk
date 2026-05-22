@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect } from 'react'
+import { useCallback, useMemo, useEffect, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -23,6 +23,8 @@ import { useThemeColors } from '../../hooks/useThemeColors'
 import { TopologyNodeComponent } from '../topology/TopologyNode'
 import { GroupNodeComponent } from '../topology/GroupNode'
 import { TopologyEdgeComponent } from '../topology/TopologyEdge'
+import { NodeContextMenu } from '../topology/NodeContextMenu'
+import { TerminalBar } from './TerminalBar'
 import type { Group } from '../../types'
 
 const nodeTypes = {
@@ -79,6 +81,8 @@ export function CanvasArea() {
   const openEdgePanel = useUIStore((s) => s.openEdgePanel)
   const openGroupPanel = useUIStore((s) => s.openGroupPanel)
   const closePanel = useUIStore((s) => s.closePanel)
+
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null)
 
   const rfNodes: Node[] = useMemo(() => buildAllRfNodes(nodes, groups, selectedNodeIds), [nodes, groups, selectedNodeIds])
   const rfEdges: Edge[] = useMemo(() => {
@@ -190,7 +194,19 @@ export function CanvasArea() {
     setSelectedNodeIds([])
     setSelectedEdgeIds([])
     closePanel()
+    setContextMenu(null)
   }, [closePanel, setSelectedNodeIds, setSelectedEdgeIds])
+
+  const onNodeContextMenu: NodeMouseHandler = useCallback((event, node) => {
+    event.preventDefault()
+    if (isGroupNode(node.id)) return
+    setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id })
+  }, [isGroupNode])
+
+  const onPaneContextMenu = useCallback((event: React.MouseEvent | MouseEvent) => {
+    event.preventDefault()
+    setContextMenu(null)
+  }, [])
 
   const onSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedRfEdges }: { nodes: Node[]; edges: Edge[] }) => {
     setSelectedNodeIds(selectedNodes.map((n) => n.id))
@@ -270,37 +286,50 @@ export function CanvasArea() {
   }, [])
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
-      <ReactFlow
-        nodes={rfNodes}
-        edges={rfEdges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
-        onPaneClick={onPaneClick}
-        onNodeDragStop={onNodeDragStop}
-        onSelectionChange={onSelectionChange}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        defaultViewport={viewport}
-        snapToGrid
-        snapGrid={[15, 15]}
-        selectionMode={SelectionMode.Partial}
-        multiSelectionKeyCode="Shift"
-        connectionMode={ConnectionMode.Loose}
-        fitView
-        style={{ background: colors.bgCanvas }}
-      >
-        <Background color={colors.border} gap={20} />
-        <Controls />
-        <MiniMap
-          nodeStrokeColor={colors.border}
-          nodeColor="#4c9aff"
-          maskColor="rgba(0,0,0,0.5)"
-        />
-      </ReactFlow>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, position: 'relative' }}>
+        <ReactFlow
+          nodes={rfNodes}
+          edges={rfEdges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
+          onPaneClick={onPaneClick}
+          onNodeDragStop={onNodeDragStop}
+          onSelectionChange={onSelectionChange}
+          onNodeContextMenu={onNodeContextMenu}
+          onPaneContextMenu={onPaneContextMenu}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          defaultViewport={viewport}
+          snapToGrid
+          snapGrid={[15, 15]}
+          selectionMode={SelectionMode.Partial}
+          multiSelectionKeyCode="Shift"
+          connectionMode={ConnectionMode.Loose}
+          fitView
+          style={{ background: colors.bgCanvas }}
+        >
+          <Background color={colors.border} gap={20} />
+          <Controls />
+          <MiniMap
+            nodeStrokeColor={colors.border}
+            nodeColor="#4c9aff"
+            maskColor="rgba(0,0,0,0.5)"
+          />
+        </ReactFlow>
+        {contextMenu && (
+          <NodeContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            nodeId={contextMenu.nodeId}
+            onClose={() => setContextMenu(null)}
+          />
+        )}
+      </div>
+      <TerminalBar />
     </div>
   )
 }

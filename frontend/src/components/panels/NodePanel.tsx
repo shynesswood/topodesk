@@ -5,7 +5,7 @@ import { useTopologyStore } from '../../stores/topologyStore'
 import { useUIStore } from '../../stores/uiStore'
 import { testConnection as testSSHConnection } from '../../services/sshService'
 import { testConnection as testRDPConnection } from '../../services/rdpService'
-import type { SoftwareInfo, OSType } from '../../types'
+import type { SoftwareInfo, OSType, CommandInfo, CmdType } from '../../types'
 
 const { TextArea } = Input
 
@@ -144,6 +144,22 @@ export function NodePanel() {
   function handleRemoveSoftware(index: number) {
     const list = (currentNode.software || []).filter((_, j) => j !== index)
     handleChange('software', list)
+  }
+
+  function handleCommandChange(index: number, field: string, value: string) {
+    const list = [...(currentNode.commands || [])]
+    list[index] = { ...list[index], [field]: value }
+    handleChange('commands', list)
+  }
+
+  function handleAddCommand() {
+    const list = [...(currentNode.commands || []), { name: '', command: '', type: 'local' as CmdType }]
+    handleChange('commands', list)
+  }
+
+  function handleRemoveCommand(index: number) {
+    const list = (currentNode.commands || []).filter((_, j) => j !== index)
+    handleChange('commands', list)
   }
 
   const connectionLabel = osType === 'windows' ? 'RDP 信息' : 'SSH 信息'
@@ -289,6 +305,45 @@ export function NodePanel() {
                   )
                 })}
                 <Button size="small" icon={<PlusOutlined />} onClick={handleAddSoftware} block>添加软件</Button>
+              </div>
+            ),
+          },
+          {
+            key: 'commands',
+            label: '命令管理',
+            children: (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {(currentNode.commands || []).map((cmd, i) => (
+                  <div key={i} style={{ border: '1px solid var(--border-color, #d9d9d9)', borderRadius: 6, padding: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <Input
+                        size="small"
+                        value={cmd.name}
+                        onChange={(e) => handleCommandChange(i, 'name', e.target.value)}
+                        placeholder="命令名称"
+                        style={{ fontWeight: 600, flex: 1 }}
+                      />
+                      <Select
+                        size="small"
+                        value={cmd.type || 'local'}
+                        onChange={(v: CmdType) => handleCommandChange(i, 'type', v)}
+                        style={{ width: 80 }}
+                        options={[
+                          { label: '本地', value: 'local' },
+                          { label: 'SSH', value: 'ssh' },
+                        ]}
+                      />
+                      <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => handleRemoveCommand(i)} />
+                    </div>
+                    <Input
+                      size="small"
+                      value={cmd.command}
+                      onChange={(e) => handleCommandChange(i, 'command', e.target.value)}
+                      placeholder="执行命令"
+                    />
+                  </div>
+                ))}
+                <Button size="small" icon={<PlusOutlined />} onClick={handleAddCommand} block>添加命令</Button>
               </div>
             ),
           },

@@ -1,5 +1,46 @@
+export namespace cmdexec {
+	
+	export class ExecResult {
+	    success: boolean;
+	    stdout: string;
+	    stderr: string;
+	    exitCode: number;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ExecResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.stdout = source["stdout"];
+	        this.stderr = source["stderr"];
+	        this.exitCode = source["exitCode"];
+	        this.error = source["error"];
+	    }
+	}
+
+}
+
 export namespace models {
 	
+	export class CommandInfo {
+	    name: string;
+	    command: string;
+	    type?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CommandInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.command = source["command"];
+	        this.type = source["type"];
+	    }
+	}
 	export class Edge {
 	    id: string;
 	    source: string;
@@ -136,6 +177,7 @@ export namespace models {
 	    ssh?: SSHInfo;
 	    rdp?: RDPInfo;
 	    software?: SoftwareInfo[];
+	    commands?: CommandInfo[];
 	
 	    static createFrom(source: any = {}) {
 	        return new Node(source);
@@ -152,6 +194,7 @@ export namespace models {
 	        this.ssh = this.convertValues(source["ssh"], SSHInfo);
 	        this.rdp = this.convertValues(source["rdp"], RDPInfo);
 	        this.software = this.convertValues(source["software"], SoftwareInfo);
+	        this.commands = this.convertValues(source["commands"], CommandInfo);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -294,6 +337,26 @@ export namespace rdp {
 
 export namespace ssh {
 	
+	export class SSHExecResult {
+	    success: boolean;
+	    stdout: string;
+	    stderr: string;
+	    exitCode: number;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SSHExecResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.stdout = source["stdout"];
+	        this.stderr = source["stderr"];
+	        this.exitCode = source["exitCode"];
+	        this.error = source["error"];
+	    }
+	}
 	export class SSHResult {
 	    success: boolean;
 	    message: string;

@@ -13,6 +13,14 @@ type SSHResult struct {
 	Message string `json:"message"`
 }
 
+type SSHExecResult struct {
+	Success  bool   `json:"success"`
+	Stdout   string `json:"stdout"`
+	Stderr   string `json:"stderr"`
+	ExitCode int    `json:"exitCode"`
+	Error    string `json:"error,omitempty"`
+}
+
 type SSHService struct{}
 
 func NewSSHService() *SSHService {
@@ -46,27 +54,34 @@ func (s *SSHService) createClientConfig(username, password, privateKey string) (
 	}, nil
 }
 
-func (s *SSHService) TestConnection(host string, port int, username, password, privateKey string) SSHResult {
+func (s *SSHService) dialClient(host string, port int, username, password, privateKey string) (*ssh.Client, error) {
 	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
 
 	config, err := s.createClientConfig(username, password, privateKey)
 	if err != nil {
-		return SSHResult{Success: false, Message: err.Error()}
+		return nil, err
 	}
 
 	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
 	if err != nil {
-		return SSHResult{Success: false, Message: fmt.Sprintf("连接失败: %s", err.Error())}
+		return nil, fmt.Errorf("连接失败: %s", err.Error())
 	}
-	defer conn.Close()
 
 	sshConn, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
 	if err != nil {
-		return SSHResult{Success: false, Message: fmt.Sprintf("SSH握手失败: %s", err.Error())}
+		conn.Close()
+		return nil, fmt.Errorf("SSH握手失败: %s", err.Error())
 	}
-	defer sshConn.Close()
 
 	client := ssh.NewClient(sshConn, chans, reqs)
+	return client, nil
+}
+
+func (s *SSHService) TestConnection(host string, port int, username, password, privateKey string) SSHResult {
+	client, err := s.dialClient(host, port, username, password, privateKey)
+	if err != nil {
+		return SSHResult{Success: false, Message: err.Error()}
+	}
 	defer client.Close()
 
 	session, err := client.NewSession()
@@ -76,4 +91,49 @@ func (s *SSHService) TestConnection(host string, port int, username, password, p
 	defer session.Close()
 
 	return SSHResult{Success: true, Message: "SSH连接成功"}
+}
+
+func (s *SSHService) ExecuteCommand(host string, port int, username, password, privateKey, command string) SSHExecResult {
+	client, err := s.dialClient(host, port, username, password, privateKey)
+	if err != nil {
+		return SSHExecResult{Success: false, Error: err.Error()}
+	}
+	defer client.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		return SSHExecResult{Success: false, Error: fmt.Sprintf("创建会话失败: %s", err.Error())}
+	}
+	defer session.Close()
+
+	output, err := session.CombinedOutput(command)
+
+	exitCode := 0
+	if err != nil {
+		if exitErr, ok := err.(*ssh.ExitError); ok {
+			exitCode = exitErr.ExitStatus()
+		} else {
+			return SSHExecResult{
+				Success:  false,
+				Stdout:   string(output),
+				ExitCode: exitCode,
+				Error:    fmt.Sprintf("执行失败: %s", err.Error()),
+			}
+		}
+	}
+
+	stdout, stderr := splitCombinedOutput(string(output), exitCode)
+	return SSHExecResult{
+		Success:  exitCode == 0,
+		Stdout:   stdout,
+		Stderr:   stderr,
+		ExitCode: exitCode,
+	}
+}
+
+func splitCombinedOutput(output string, exitCode int) (stdout, stderr string) {
+	if exitCode == 0 {
+		return output, ""
+	}
+	return "", output
 }

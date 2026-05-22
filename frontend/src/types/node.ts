@@ -1,4 +1,5 @@
 export type OSType = 'linux' | 'windows'
+export type CmdType = 'local' | 'ssh'
 
 export interface SoftwareInfo {
   name: string
@@ -19,6 +20,12 @@ export interface RDPInfo {
   port?: number
 }
 
+export interface CommandInfo {
+  name: string
+  command: string
+  type?: CmdType
+}
+
 export interface TopologyNode {
   id: string
   name: string
@@ -34,4 +41,5 @@ export interface TopologyNode {
   ssh?: SSHInfo
   rdp?: RDPInfo
   software?: SoftwareInfo[]
+  commands?: CommandInfo[]
 }

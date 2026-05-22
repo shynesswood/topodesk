@@ -4,6 +4,7 @@ import (
 	"context"
 	"runtime"
 
+	"topodesk/internal/cmdexec"
 	"topodesk/internal/models"
 	"topodesk/internal/project"
 	"topodesk/internal/rdp"
@@ -21,6 +22,7 @@ type App struct {
 	fileManager    *storage.FileManager
 	sshService     *ssh.SSHService
 	rdpService     *rdp.RDPService
+	cmdExecService *cmdexec.CmdExecService
 }
 
 func NewApp() *App {
@@ -29,6 +31,7 @@ func NewApp() *App {
 		fileManager:    storage.NewFileManager(),
 		sshService:     ssh.NewSSHService(),
 		rdpService:     rdp.NewRDPService(),
+		cmdExecService: cmdexec.NewCmdExecService(),
 	}
 }
 
@@ -85,6 +88,14 @@ func (a *App) SSHTestConnection(host string, port int, username, password, priva
 
 func (a *App) RDPTestConnection(host string, port int, username, password, domain string) rdp.RDPResult {
 	return a.rdpService.TestConnection(host, port, username, password, domain)
+}
+
+func (a *App) ExecuteLocalCommand(command string) cmdexec.ExecResult {
+	return a.cmdExecService.Execute(command)
+}
+
+func (a *App) SSHExecuteCommand(host string, port int, username, password, privateKey, command string) ssh.SSHExecResult {
+	return a.sshService.ExecuteCommand(host, port, username, password, privateKey, command)
 }
 
 func (a *App) GetVersion() string {

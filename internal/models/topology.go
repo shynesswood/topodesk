@@ -28,6 +28,19 @@ type RDPInfo struct {
 	Port     int    `json:"port,omitempty"`
 }
 
+type CmdType string
+
+const (
+	CmdLocal CmdType = "local"
+	CmdSSH   CmdType = "ssh"
+)
+
+type CommandInfo struct {
+	Name    string  `json:"name"`
+	Command string  `json:"command"`
+	Type    CmdType `json:"type,omitempty"`
+}
+
 type Position struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
@@ -43,6 +56,7 @@ type Node struct {
 	SSH         *SSHInfo       `json:"ssh,omitempty"`
 	RDP         *RDPInfo       `json:"rdp,omitempty"`
 	Software    []SoftwareInfo `json:"software,omitempty"`
+	Commands    []CommandInfo  `json:"commands,omitempty"`
 }
 
 type Edge struct {
