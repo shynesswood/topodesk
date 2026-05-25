@@ -42,7 +42,7 @@ func (s *ProjectService) Save(p *models.TopologyProject, path string) error {
 		return fmt.Errorf("序列化项目失败: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("写入文件失败: %w", err)
 	}
 

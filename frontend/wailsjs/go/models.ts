@@ -47,6 +47,8 @@ export namespace models {
 	    target: string;
 	    type?: string;
 	    label?: string;
+	    sourceHandle?: string;
+	    targetHandle?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Edge(source);
@@ -59,6 +61,8 @@ export namespace models {
 	        this.target = source["target"];
 	        this.type = source["type"];
 	        this.label = source["label"];
+	        this.sourceHandle = source["sourceHandle"];
+	        this.targetHandle = source["targetHandle"];
 	    }
 	}
 	export class Position {

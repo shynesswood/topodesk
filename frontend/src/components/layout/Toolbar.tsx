@@ -24,7 +24,7 @@ import {
   SaveFileDialog,
   BackupProject,
 } from '../../services/projectService'
-import { GetVersion } from '../../../wailsjs/go/main/App'
+import { getVersion } from '../../services/appService'
 
 export function Toolbar() {
   const { currentProject, isDirty, setProject, markSaved, setFilePath, createBlank } = useProjectStore()
@@ -39,7 +39,7 @@ export function Toolbar() {
   const [appVersion, setAppVersion] = useState('')
 
   useEffect(() => {
-    GetVersion().then(setAppVersion)
+    getVersion().then(setAppVersion)
   }, [])
 
   async function handleOpenRecent(path: string) {

@@ -26,6 +26,7 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
     wn.position = new models.Position()
     wn.position.x = n.position.x
     wn.position.y = n.position.y
+    wn.os = n.os
     if (n.ssh) {
       wn.ssh = new models.SSHInfo()
       wn.ssh.username = n.ssh.username
@@ -33,11 +34,25 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
       wn.ssh.privateKey = n.ssh.privateKey
       wn.ssh.port = n.ssh.port
     }
+    if (n.rdp) {
+      wn.rdp = new models.RDPInfo()
+      wn.rdp.username = n.rdp.username
+      wn.rdp.password = n.rdp.password
+      wn.rdp.domain = n.rdp.domain
+      wn.rdp.port = n.rdp.port
+    }
     wn.software = (n.software || []).map((s) => {
       const ws = new models.SoftwareInfo()
       ws.name = s.name
       ws.props = s.props || {}
       return ws
+    })
+    wn.commands = (n.commands || []).map((c) => {
+      const wc = new models.CommandInfo()
+      wc.name = c.name
+      wc.command = c.command
+      wc.type = c.type
+      return wc
     })
     return wn
   })
@@ -48,6 +63,8 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
     we.source = e.source
     we.target = e.target
     we.label = e.label
+    we.sourceHandle = e.sourceHandle ?? undefined
+    we.targetHandle = e.targetHandle ?? undefined
     return we
   })
 
@@ -88,15 +105,27 @@ function projectFromWails(wp: models.TopologyProject): TopologyProject {
       ip: n.ip,
       description: n.description,
       position: { x: n.position.x, y: n.position.y },
+      os: n.os as 'linux' | 'windows' | undefined,
       ssh: n.ssh ? {
         username: n.ssh.username,
         password: n.ssh.password,
         privateKey: n.ssh.privateKey,
         port: n.ssh.port,
       } : undefined,
+      rdp: n.rdp ? {
+        username: n.rdp.username,
+        password: n.rdp.password,
+        domain: n.rdp.domain,
+        port: n.rdp.port,
+      } : undefined,
       software: n.software?.map((s) => ({
         name: s.name,
         props: s.props || {},
+      })),
+      commands: n.commands?.map((c) => ({
+        name: c.name,
+        command: c.command,
+        type: c.type as 'local' | 'ssh' | undefined,
       })),
     })),
     edges: wp.edges.map((e) => ({
@@ -104,6 +133,8 @@ function projectFromWails(wp: models.TopologyProject): TopologyProject {
       source: e.source,
       target: e.target,
       label: e.label,
+      sourceHandle: e.sourceHandle ?? null,
+      targetHandle: e.targetHandle ?? null,
     })),
     groups: wp.groups.map((g) => ({
       id: g.id,
