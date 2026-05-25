@@ -38,6 +38,9 @@ export interface TopologyNode {
     y: number
   }
 
+  width?: number
+  height?: number
+
   ssh?: SSHInfo
   rdp?: RDPInfo
   software?: SoftwareInfo[]

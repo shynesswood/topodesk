@@ -177,6 +177,8 @@ export namespace models {
 	    ip?: string;
 	    description?: string;
 	    position: Position;
+	    width?: number;
+	    height?: number;
 	    os?: string;
 	    ssh?: SSHInfo;
 	    rdp?: RDPInfo;
@@ -194,6 +196,8 @@ export namespace models {
 	        this.ip = source["ip"];
 	        this.description = source["description"];
 	        this.position = this.convertValues(source["position"], Position);
+	        this.width = source["width"];
+	        this.height = source["height"];
 	        this.os = source["os"];
 	        this.ssh = this.convertValues(source["ssh"], SSHInfo);
 	        this.rdp = this.convertValues(source["rdp"], RDPInfo);

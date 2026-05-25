@@ -26,6 +26,8 @@ function projectToWails(p: TopologyProject): models.TopologyProject {
     wn.position = new models.Position()
     wn.position.x = n.position.x
     wn.position.y = n.position.y
+    wn.width = n.width
+    wn.height = n.height
     wn.os = n.os
     if (n.ssh) {
       wn.ssh = new models.SSHInfo()
@@ -105,6 +107,8 @@ function projectFromWails(wp: models.TopologyProject): TopologyProject {
       ip: n.ip,
       description: n.description,
       position: { x: n.position.x, y: n.position.y },
+      width: n.width,
+      height: n.height,
       os: n.os as 'linux' | 'windows' | undefined,
       ssh: n.ssh ? {
         username: n.ssh.username,

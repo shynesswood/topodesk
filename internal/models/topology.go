@@ -52,6 +52,8 @@ type Node struct {
 	IP          string         `json:"ip,omitempty"`
 	Description string         `json:"description,omitempty"`
 	Position    Position       `json:"position"`
+	Width       float64        `json:"width,omitempty"`
+	Height      float64        `json:"height,omitempty"`
 	OS          OSType         `json:"os,omitempty"`
 	SSH         *SSHInfo       `json:"ssh,omitempty"`
 	RDP         *RDPInfo       `json:"rdp,omitempty"`

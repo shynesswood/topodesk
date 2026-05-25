@@ -2,6 +2,7 @@ import { memo, useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { useThemeColors } from '../../hooks/useThemeColors'
+import { useTopologyStore } from '../../stores/topologyStore'
 
 interface TopologyNodeData {
   label: string
@@ -14,6 +15,7 @@ interface SoftwareEntry {
 }
 
 const NODE_COLOR = '#4c9aff'
+const HANDLE_SIZE = 8
 
 const DISPLAY_PROPS = [
   { key: 'installPath', label: '安装路径' },
@@ -25,10 +27,13 @@ const DISPLAY_PROPS = [
 ]
 
 export const TopologyNodeComponent = memo((props: NodeProps) => {
-  const { data, selected } = props
+  const { id, data, selected } = props
   const nodeData = data as unknown as TopologyNodeData
   const colors = useThemeColors()
+  const resizeNode = useTopologyStore((s) => s.resizeNode)
   const [hovered, setHovered] = useState(false)
+  const [resizing, setResizing] = useState<string | null>(null)
+  const resizeRef = useRef<{ startX: number; startY: number; startW: number; startH: number; startPosX: number; startPosY: number } | null>(null)
   const nodeRef = useRef<HTMLDivElement>(null)
   const detailPopupRef = useRef<HTMLDivElement>(null)
   const [hoverPos, setHoverPos] = useState<{ left: number; top: number } | null>(null)
@@ -36,7 +41,7 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
   const [selectedSwIdx, setSelectedSwIdx] = useState<number | null>(null)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const isSelected = !!selected
-  const showHandles = isSelected || hovered
+  const showHandles = isSelected || hovered || resizing !== null
 
   const softwareList: SoftwareEntry[] = Array.isArray(nodeData.nodeData?.software)
     ? (nodeData.nodeData.software as SoftwareEntry[])
@@ -68,6 +73,52 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
     const rect = nodeRef.current.getBoundingClientRect()
     return { left: rect.right + 12, top: rect.top }
   }, [])
+
+  const handleResizeStart = useCallback((direction: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const rect = nodeRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const store = useTopologyStore.getState()
+    const node = store.nodes.find((n) => n.id === id)
+    if (!node) return
+    resizeRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: node.width || rect.width,
+      startH: node.height || rect.height,
+      startPosX: node.position.x,
+      startPosY: node.position.y,
+    }
+    setResizing(direction)
+  }, [id])
+
+  useEffect(() => {
+    if (!resizing) return
+    const direction = resizing
+    function handleMouseMove(e: MouseEvent) {
+      if (!resizeRef.current) return
+      const r = resizeRef.current
+      const dx = e.clientX - r.startX
+      const dy = e.clientY - r.startY
+      let w = r.startW, h = r.startH, x = r.startPosX, y = r.startPosY
+      if (direction.includes('right')) w = Math.max(140, r.startW + dx)
+      if (direction.includes('left')) { w = Math.max(140, r.startW - dx); x = r.startPosX + dx }
+      if (direction.includes('bottom')) h = Math.max(46, r.startH + dy)
+      if (direction.includes('top')) { h = Math.max(46, r.startH - dy); y = r.startPosY + dy }
+      resizeNode(id, w, h, { x, y })
+    }
+    function handleMouseUp() {
+      setResizing(null)
+      resizeRef.current = null
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [resizing, id, resizeNode])
 
   useEffect(() => {
     if (showHoverPopover) {
@@ -119,15 +170,27 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
 
   const selectedSw = selectedSwIdx !== null ? softwareList[selectedSwIdx] : null
 
+  const nodeWidth = (nodeData.nodeData?.width as number) || undefined
+  const nodeHeight = (nodeData.nodeData?.height as number) || undefined
+
+  const handleBase: React.CSSProperties = {
+    position: 'absolute', width: HANDLE_SIZE, height: HANDLE_SIZE,
+    background: '#58a6ff', border: '1px solid rgba(76, 154, 255, 0.8)',
+    borderRadius: 2, zIndex: 20,
+  }
+
   return (
     <>
       <div
         ref={nodeRef}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
           background: colors.nodeBg,
           border: `2px solid ${isSelected ? '#58a6ff' : 'rgba(76, 154, 255, 0.3)'}`,
           borderRadius: 8,
-          padding: '10px 16px',
+          width: nodeWidth,
+          height: nodeHeight,
           minWidth: 140,
           boxShadow: isSelected
             ? '0 0 16px rgba(88, 166, 255, 0.55), 0 0 4px rgba(88, 166, 255, 0.35)'
@@ -136,15 +199,21 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
           transition: 'box-shadow 0.15s, border-color 0.15s, outline 0.15s',
           outline: isSelected ? '2px solid rgba(88, 166, 255, 0.35)' : '1px solid transparent',
           outlineOffset: 2,
+          position: 'relative',
         }}
       >
         <Handle id="top" type="source" position={Position.Top} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
         <Handle id="left" type="source" position={Position.Left} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
+        <div style={{
+          padding: '10px 16px',
+          overflow: (nodeWidth && nodeHeight) ? 'hidden' : 'visible',
+          borderRadius: 6,
+          height: nodeHeight ? '100%' : undefined,
+          boxSizing: 'border-box',
+        }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span
             style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
           >
             <ServerIcon />
           </span>
@@ -187,8 +256,18 @@ export const TopologyNodeComponent = memo((props: NodeProps) => {
             )}
           </div>
         </div>
+        </div>
         <Handle id="bottom" type="source" position={Position.Bottom} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
         <Handle id="right" type="source" position={Position.Right} style={{ background: NODE_COLOR, opacity: showHandles ? 1 : 0 }} />
+
+        {showHandles && (
+          <>
+            <div className="nodrag" style={{ ...handleBase, top: -4, left: -4, cursor: 'nwse-resize' }} onMouseDown={(e) => handleResizeStart('top-left', e)} />
+            <div className="nodrag" style={{ ...handleBase, top: -4, right: -4, cursor: 'nesw-resize' }} onMouseDown={(e) => handleResizeStart('top-right', e)} />
+            <div className="nodrag" style={{ ...handleBase, bottom: -4, left: -4, cursor: 'nesw-resize' }} onMouseDown={(e) => handleResizeStart('bottom-left', e)} />
+            <div className="nodrag" style={{ ...handleBase, bottom: -4, right: -4, cursor: 'nwse-resize' }} onMouseDown={(e) => handleResizeStart('bottom-right', e)} />
+          </>
+        )}
       </div>
 
       {showHoverPopover && hoverPos &&

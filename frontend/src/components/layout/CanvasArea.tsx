@@ -33,7 +33,7 @@ const nodeTypes = {
 }
 const edgeTypes = { 'topology-edge': TopologyEdgeComponent }
 
-function buildAllRfNodes(nodesArr: { id: string; name: string; position: { x: number; y: number }; ip?: string; description?: string }[], groupsArr: Group[], selectedNodeIds: string[]): Node[] {
+function buildAllRfNodes(nodesArr: { id: string; name: string; position: { x: number; y: number }; width?: number; height?: number; ip?: string; description?: string }[], groupsArr: Group[], selectedNodeIds: string[]): Node[] {
   const selectedSet = new Set(selectedNodeIds)
   const groupNodes: Node[] = groupsArr.map((g) => ({
     id: g.id,

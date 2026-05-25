@@ -22,6 +22,7 @@ interface TopologyState {
   removeNodes: (ids: string[]) => void
   updateNode: (id: string, data: Partial<TopologyNode>) => void
   moveNode: (id: string, position: { x: number; y: number }) => void
+  resizeNode: (id: string, width: number, height: number, position?: { x: number; y: number }) => void
   duplicateNode: (id: string) => void
 
   addEdge: (edge: TopologyEdge) => void
@@ -79,7 +80,7 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
 
   addNode: (name, position) => {
     const id = generateNodeId()
-    const node: TopologyNode = { id, name, os: 'linux', position: { x: position.x, y: position.y } }
+    const node: TopologyNode = { id, name, os: 'linux', position: { x: position.x, y: position.y }, width: 200 }
     set((s) => ({ nodes: [...s.nodes, node] }))
     markDirty()
   },
@@ -110,6 +111,18 @@ export const useTopologyStore = create<TopologyState>((set, get) => ({
   moveNode: (id, position) => {
     set((s) => ({
       nodes: s.nodes.map((n) => (n.id === id ? { ...n, position } : n)),
+    }))
+    markDirty()
+  },
+
+  resizeNode: (id, width, height, position?) => {
+    set((s) => ({
+      nodes: s.nodes.map((n) => {
+        if (n.id !== id) return n
+        const updated: TopologyNode = { ...n, width, height }
+        if (position) updated.position = position
+        return updated
+      }),
     }))
     markDirty()
   },
